@@ -207,11 +207,19 @@ z `src/` i z losowego CWD).
 
 ## Średnie (jakość / wydajność)
 
-### M-1. Font renderowany co klatkę w `displayText` / `displayScore` / `displayPaused` / `displayFps`
+### M-1. ~~Font renderowany co klatkę w `displayText` / `displayScore` / `displayPaused` / `displayFps`~~ ✅ NAPRAWIONE
 - `src/asteroids.py:203-206, 227, 235, 405` — `pygame.font.Font(...).render(...)`
   co klatkę. Przy 60 FPS to 4 rendery fontu na klatkę.
-- Poprawka: zainicjalizuj fonty i SURFACE tekstów w `__init__` / `Stage`,
-  blituj gotowy Surface.
+- **Poprawka (zrealizowana 2026-11-04, M-E `9e9fd77`):** w
+  `Asteroids.__init__` raz budowane są fonty (15/20/30/50 pt) i
+  surface'Y statycznych tekstów (tytuł, copyright,
+  „Press start to Play", „Paused"); `displayText`/`displayPaused`
+  tylko blitują gotowe surface. `displayScore`/`displayFps` renderują
+  co klatkę (tekst się zmienia), ale przez zcache'owane obiekty Font.
+- **Weryfikacja:** testy `tests/test_me.py` — surface'y istnieją,
+  żaden display method nie tworzy Fonta (spy na fabrykę = 0
+  konstrukcji); test W-A zaktualizowany (spy na `game.fonts[30].render`).
+  Suvita: 46 passed, smoke test zielony (EXIT=124).
 
 ### M-2. ~~`Stage.addSprite` wywołuje `sprite.draw()` (efekt uboczny)~~ ✅ NAPRAWIONE
 - `src/stage.py:50-51` — `draw()` modyfikuje `transformedPointlist`;
