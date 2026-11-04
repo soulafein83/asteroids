@@ -69,6 +69,13 @@ class Asteroids():
             'Press start to Play', True, (200, 200, 200))
         self.pausedSurface = self.fonts[30].render(
             "Paused", True, (255, 255, 255))
+        # P-5: HUD surfaces for the power-up letters, pre-rendered once
+        # (M-1): bright while the effect is active, dim otherwise.
+        self.powerUpSurfaces = {}
+        for letter in self.powerUpLetters:
+            self.powerUpSurfaces[letter] = (
+                self.fonts[20].render(letter, True, (255, 255, 255)),
+                self.fonts[20].render(letter, True, (80, 80, 80)))
         self.paused = False
         self.showingFPS = False
         self.frameAdvance = False
@@ -191,6 +198,10 @@ class Asteroids():
             self.stage.drawSprites()
             self.doSaucerLogic()
             self.displayScore()
+            # P-5: HUD of the active power-ups.  Only in the playing
+            # state — in attract mode there is no ship to show them for.
+            if self.gameState == 'playing':
+                self.displayPowerUps()
             if self.showingFPS:
                 self.displayFps()  # for debug
             self.checkScore()
@@ -271,6 +282,26 @@ class Asteroids():
         scoreText = self.fonts[30].render(scoreStr, True, (200, 200, 200))
         scoreTextRect = scoreText.get_rect(centerx=100, centery=45)
         self.stage.screen.blit(scoreText, scoreTextRect)
+
+    def displayPowerUps(self):
+        # P-5: a row of E/R/S letters in the top-right corner, S closest
+        # to the edge.  A letter is bright while its effect is active,
+        # dim otherwise; the surfaces are pre-rendered in __init__ (M-1).
+        timers = {
+            "E": self.ship.extraBulletsTimer,
+            "R": self.ship.rapidFireTimer,
+            "S": self.ship.shieldTimer,
+        }
+        gap = 8
+        x = self.stage.width - 12  # right edge of the rightmost letter
+        for letter in reversed(self.powerUpLetters):
+            if timers[letter] > 0:
+                surface = self.powerUpSurfaces[letter][0]
+            else:
+                surface = self.powerUpSurfaces[letter][1]
+            rect = surface.get_rect(topright=(x, 12))
+            self.stage.screen.blit(surface, rect)
+            x -= surface.get_width() + gap
 
     def displayPaused(self):
         if self.paused:

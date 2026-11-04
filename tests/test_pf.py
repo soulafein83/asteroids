@@ -453,3 +453,126 @@ def test_ship_respects_max_bullets_while_E_active(game):
         ship.fireBullet()
 
     assert len(ship.bullets) == 8
+
+
+# ---------------------------------------------------------------------
+# P-5: HUD of active power-ups
+# ---------------------------------------------------------------------
+
+def _pixels(surface):
+    # Pixel list of a surface (the test suite has no numpy).
+    return [surface.get_at((x, y))
+            for x in range(surface.get_width())
+            for y in range(surface.get_height())]
+
+
+def test_hud_surfaces_are_cached_in_init(game):
+    # M-1: the E/R/S letter surfaces are pre-rendered once in __init__ —
+    # a bright variant (effect active) and a dim one (inactive).
+    assert set(game.powerUpSurfaces) == set("ERS")
+    for letter in "ERS":
+        bright, dim = game.powerUpSurfaces[letter]
+        assert isinstance(bright, pygame.Surface)
+        assert isinstance(dim, pygame.Surface)
+        assert _pixels(bright) != _pixels(dim)
+
+
+def test_display_power_ups_does_not_crash_in_any_timer_state(game):
+    ship = game.ship
+    for e, r, s in ((0, 0, 0), (600, 0, 0), (0, 600, 0), (0, 0, 600),
+                    (1, 1, 1), (600, 600, 600)):
+        ship.extraBulletsTimer = e
+        ship.rapidFireTimer = r
+        ship.shieldTimer = s
+        game.stage.screen.fill((10, 10, 10))
+        game.displayPowerUps()
+
+
+def test_hud_letters_are_bright_only_while_active(game):
+    # With no effects the top-right corner holds only dim letters (the
+    # font blits with per-pixel alpha, so the dim 80,80,80 colour blends
+    # down); with all effects active the same corner reaches the bright
+    # 255,255,255 colour.  A HUD that ignores the timers renders the
+    # same image in both states and fails here.
+    stage = game.stage
+    ship = game.ship
+
+    def top_right_max_brightness():
+        stage.screen.fill((10, 10, 10))
+        game.displayPowerUps()
+        region = stage.screen.subsurface(
+            (stage.width - 100, 0, 100, 40))
+        return max(p.r for x in range(region.get_width())
+                   for y in range(region.get_height())
+                   for p in [region.get_at((x, y))])
+
+    ship.extraBulletsTimer = 0
+    ship.rapidFireTimer = 0
+    ship.shieldTimer = 0
+    dim = top_right_max_brightness()
+    assert dim < 100
+
+    ship.extraBulletsTimer = 600
+    ship.rapidFireTimer = 600
+    ship.shieldTimer = 600
+    bright = top_right_max_brightness()
+    assert bright > 120
+
+
+def test_display_power_ups_only_blits_cached_surfaces(game):
+    # The M-1 contract: displayPowerUps blits only the surfaces
+    # pre-rendered in __init__ (identity-checked) — no font rendering
+    # per frame.
+    cached = [s for pair in game.powerUpSurfaces.values() for s in pair]
+    real_screen = game.stage.screen
+
+    class _RecordingScreen:
+        def __init__(self):
+            self.blitted = []
+
+        def blit(self, surface, rect):
+            self.blitted.append(surface)
+            return rect
+
+    recording = _RecordingScreen()
+    game.stage.screen = recording
+    try:
+        for _ in range(3):
+            game.displayPowerUps()
+    finally:
+        game.stage.screen = real_screen
+
+    assert len(recording.blitted) == 9
+    for surface in recording.blitted:
+        assert any(surface is c for c in cached)
+
+
+def test_display_power_ups_is_called_in_game_loop(game):
+    # The main loop must draw the HUD every frame in the playing state.
+    # playGame() runs synchronously here and is stopped from inside by an
+    # input() guard after a few frames (a QUIT event would sys.exit and
+    # tear down the shared pygame state of the test session).
+    calls = []
+    game.displayPowerUps = lambda: calls.append(1)
+
+    class _StopLoop(Exception):
+        pass
+
+    real_input = game.input
+    frames = {"n": 0}
+
+    def limited_input(events):
+        frames["n"] += 1
+        if frames["n"] > 30:
+            raise _StopLoop
+        return real_input(events)
+
+    game.input = limited_input
+    try:
+        game.playGame()
+        raise AssertionError("playGame should have been stopped")
+    except _StopLoop:
+        pass
+
+    assert frames["n"] > 30
+    assert len(calls) == 30

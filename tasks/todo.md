@@ -97,13 +97,13 @@ górnym rogu; aktywna jasna, nieaktywna przyciemniona; renderowanie przez
 cache'owane fonty (M-1) — statyczne surface w `__init__`, blit per frame.
 
 **Acceptance criteria:**
-- [ ] metoda nie crashuje headless przy każdym stanie timerów
-- [ ] wywoływana w pętli gry (stan playing)
-- [ ] statyczne surface w `__init__` (bez per-frame renderu)
+- [x] metoda nie crashuje headless przy każdym stanie timerów
+- [x] wywoływana w pętli gry (stan playing)
+- [x] statyczne surface w `__init__` (bez per-frame renderu)
 
 **Verification:**
-- [ ] `python3 -m pytest` zielony
-- [ ] smoke EXIT=124
+- [x] `python3 -m pytest` zielony
+- [x] smoke EXIT=124
 - [ ] manual: rząd liter widać w prawym górnym rogu
 
 **Dependencies:** P-3
@@ -117,9 +117,9 @@ cache'owane fonty (M-1) — statyczne surface w `__init__`, blit per frame.
 - [x] atomic commit + push na fork
 
 ## Checkpoint: Efekty (po P-3, P-4)
-- [ ] pełny suite zielony
-- [ ] smoke EXIT=124
-- [ ] atomic commit + push na fork
+- [x] pełny suite zielony
+- [x] smoke EXIT=124
+- [x] atomic commit + push na fork
 - [ ] manual: tempo ognia + tarcza w grze
 
 ## Checkpoint: Complete (po P-5)
