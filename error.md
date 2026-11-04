@@ -96,15 +96,19 @@ z `src/` i z losowego CWD).
 
 ## Wysokie (bugi w logice / stabilność)
 
-### W-1. `displayScore` — format `"%02d"` nie skaluje się z wynikiem
+### W-1. ~~`displayScore` — format `"%02d"` nie skaluje się z wynikiem~~ ✅ NAPRAWIONE
 - `src/asteroids.py:228` — przy 100+ punktach format staje się bezsensowny,
   a wynik w oryginale owijał się przy 100 000.
-- Poprawka: `"%04d" % min(self.score, 99999)` albo bez fill.
+- **Poprawka (zrealizowana 2026-11-04):** `"%04d" % min(self.score, 99999)`.
+- **Weryfikacja:** test — score 0/7/123/4200/99999/250000 renderuje
+  `0000/0007/0123/4200/99999/99999` (spy na fabrykę `Font`).
 
-### W-2. `addLife` przy dużej liczbie żyć wyjeżdża poza ekran
+### W-2. ~~`addLife` przy dużej liczbie żyć wyjeżdża poza ekran~~ ✅ NAPRAWIONE
 - `src/asteroids.py:97-98` — `position.x = width - lifeNumber * rect.width - 10`;
   po kilkunastu extra life statek-wyświetlacz-życia leci w ujemne x.
-- Poprawka: modulo liczbą mieściecych się żetonów albo `max(..., 10)`.
+- **Poprawka (zrealizowana 2026-11-04):** indeks slotu owinięty modulo
+  `max(1, width // rectWidth)` — sloty cyklu się zamiast uciekać w lewo.
+- **Weryfikacja:** test — 203 żyć, x w zakresie 13–1014, zero poza ekranem.
 
 ### W-3. `checkCollisions` — saucer oceniany w pętli po każdej skale
 - `src/asteroids.py:316-327` — blok saucera siedzi WĄTRZE pętli `for rock`,
@@ -141,12 +145,15 @@ z `src/` i z losowego CWD).
 - Poprawka: `self.respawnTimer = 180`; w `checkCollisions` pomijaj kolizje
   statku gdy `respawnTimer > 0`; saucer celuje tylko gdy timer == 0.
 
-### W-8. `lives` nie jest resetowane w `initialiseGame`
+### W-8. ~~`lives` nie jest resetowane w `initialiseGame`~~ ✅ NAPRAWIONE
 - `src/asteroids.py:62-77` — `createLivesList` robi `self.lives += 1` do
   STAREJ wartości. Dziś działa, bo gra wraca do attract_mode tylko przy
   lives == 0, ale każdy przyszły tryb (np. restart w trakcie gry, demo
   restart po timeoucie) da drift życia.
-- Poprawka: `self.lives = 0` na początku `initialiseGame`.
+- **Poprawka (zrealizowana 2026-11-04):** `self.lives = 0` na początku
+  `initialiseGame`.
+- **Weryfikacja:** test — po `initialiseGame()` lives == 5 (startLives),
+  nawet jeśli przed nową grą `lives == 7`; `livesList` ma 4 statki.
 
 ### W-9. `Debris` — kolizje z niczym, ale TTL=50 klatek, fade 5/frame
 - `src/badies.py:100-108` — OK, ale `r,g,b = self.color` + `r -= 5` bez
@@ -292,4 +299,5 @@ z `src/` i z losowego CWD).
 7. **W-7** (safe area) — gameplay, TODO z kodu.
 8. **M-15** (testy) — ochrona przed regresjami.
 9. ~~**M-14** (requirements.txt)~~ — ✅ naprawione (2026-11-04).
-10. Reszta W/M — przy okazji.
+10. ~~**W-1, W-2, W-8**~~ — ✅ naprawione (2026-11-04, plaster W-A).
+11. Reszta W/M — przy okazji.

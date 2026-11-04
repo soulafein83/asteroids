@@ -70,6 +70,9 @@ class Asteroids():
          for sprite in self.rockList]  # clear old rocks
         if self.saucer is not None:
             self.killSaucer()
+        # Reset the life counter so a new game always starts from a clean
+        # state (extra lives from a previous run must not leak in).
+        self.lives = 0
         self.startLives = 5
         self.createNewShip()
         self.createLivesList()
@@ -99,8 +102,12 @@ class Asteroids():
         self.lives += 1
         ship = Ship(self.stage)
         self.stage.addSprite(ship)
+        # Wrap the slot index so a large number of lives never pushes the
+        # displayed ships off the left edge of the screen.
+        slots = max(1, self.stage.width // ship.boundingRect.width)
+        slot = lifeNumber % slots
         ship.position.x = self.stage.width - \
-            (lifeNumber * ship.boundingRect.width) - 10
+            (slot * ship.boundingRect.width) - 10
         ship.position.y = 0 + ship.boundingRect.height
         self.livesList.append(ship)
 
@@ -230,7 +237,8 @@ class Asteroids():
 
     def displayScore(self):
         font1 = pygame.font.Font(FONT_PATH, 30)
-        scoreStr = str("%02d" % self.score)
+        # The arcade wrapped the score at 100 000; keep the display 5 digits.
+        scoreStr = "%04d" % min(self.score, 99999)
         scoreText = font1.render(scoreStr, True, (200, 200, 200))
         scoreTextRect = scoreText.get_rect(centerx=100, centery=45)
         self.stage.screen.blit(scoreText, scoreTextRect)
@@ -424,13 +432,14 @@ class Asteroids():
 
 
 # Script to run the game
-if not pygame.font:
-    print('Warning, fonts disabled')
-if not pygame.mixer:
-    print('Warning, sound disabled')
+if __name__ == "__main__":
+    if not pygame.font:
+        print('Warning, fonts disabled')
+    if not pygame.mixer:
+        print('Warning, sound disabled')
 
-initSoundManager()
-game = Asteroids()  # create object game from class Asteroids
-game.playGame()
+    initSoundManager()
+    game = Asteroids()  # create object game from class Asteroids
+    game.playGame()
 
 ####
