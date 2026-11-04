@@ -1,24 +1,43 @@
 """Tests for the W-C patch: per-instance rock shapes (W-4), debris clamp (W-9), saucer flight (W-6)."""
 import math
+import random
 
 from badies import Rock, Debris, Saucer
 from ship import Ship
 from util.vectorsprites import Vector2d
 
 
-def test_rock_shapes_are_per_instance(game):
+def test_rock_shapes_are_per_instance(game, monkeypatch):
     # W-4: no shared class-level rockShape; each rock picks its own shape.
     assert not hasattr(Rock, "rockShape"), \
         "class-level rockShape must be gone (state moved to instances)"
     assert isinstance(Rock.rockShapes, tuple) and len(Rock.rockShapes) == 4
 
     stage = game.stage
+    # Deterministic coverage: the first four rocks are forced to draw shapes
+    # 1..4 in order, so the test cannot depend on luck (20 random draws miss
+    # a bucket ~1% of the time). Once the forced draws are exhausted, fall
+    # back to the real random number generator for the remaining rocks.
+    orig_randint = random.randint
+    draws = iter([1, 2, 3, 4])
+
+    def forced(a, b):
+        try:
+            return next(draws)
+        except StopIteration:
+            return orig_randint(a, b)
+
+    monkeypatch.setattr(random, "randint", forced)
+    rocks = [Rock(stage, Vector2d(50, 50), Rock.largeRockType) for _ in range(4)]
+    for expected, r in zip(range(1, 5), rocks):
+        assert r.rockShape == expected, \
+            "forced draw %d produced rockShape %r" % (expected, r.rockShape)
+        assert r.createPointList() == Rock.rockShapes[r.rockShape - 1]
+    # ... and free (unpatched) random draws always stay within 1..4
     rocks = [Rock(stage, Vector2d(50, 50), Rock.largeRockType) for _ in range(20)]
     for r in rocks:
         assert 1 <= r.rockShape <= 4, "bad rockShape %r" % r.rockShape
         assert r.createPointList() == Rock.rockShapes[r.rockShape - 1]
-    # all four shapes are reachable (20 draws from 4 buckets)
-    assert {r.rockShape for r in rocks} == {1, 2, 3, 4}
 
     # clamping: out-of-range shapes resolve instead of crashing
     probe = rocks[0]
