@@ -242,10 +242,18 @@ z `src/` i z losowego CWD).
 - Poprawka: `ThrustJet.__init__` bez `ship`, albo `thrustJet.ship = newShip`
   w `createNewShip`.
 
-### M-6. `Vector2d` — brak operatorów, brak `__eq__`, brak `__repr__`
+### M-6. ~~`Vector2d` — brak operatorów, brak `__eq__`, brak `__repr__`~~ ✅ NAPRAWIONE
 - `src/util/vector2d.py:20-26` — kom Komentarz "needs a copy constructor".
   Bez operatorów każda operacja wektorowa to 4 linijki.
-- Poprawka: `__add__`, `__sub__`, `__mul__`, `__eq__`, `__repr__`, `magnitude()`.
+- **Poprawka (zrealizowana 2026-11-04, M-B `23a06eb`):** `__add__`,
+  `__sub__`, `__mul__`/`__rmul__`, `__eq__`, `__repr__`, `magnitude()`
+  (na `math.hypot`). Operator zwraca nowy wektor i nie mutuje
+  operandów; `__eq__` porównuje tylko z `Vector2d`. Brak `__hash__`
+  po zdefiniowaniu `__eq__` jest bezpieczny — żaden kod nie hashuje
+  `Vector2d`.
+- **Weryfikacja:** testy `tests/test_mb.py` (8 testów: semantyka
+  operatorów, skalary float, repr, magnitude, pozycja statku z gry).
+  Suvita: 35 passed, smoke test zielony (EXIT=124).
 
 ### M-7. ~~`geometry.py` — `assert false` (lowercase) + `assert` w produkcyjnym kodzie~~ ✅ NAPRAWIONE
 - `src/util/geometry.py:83` — `assert false` = `assert 0`; w Pythonie
