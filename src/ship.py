@@ -27,7 +27,7 @@ class Ship(Shooter):
 
     # Class attributes
     acceleration = 0.2
-    decelaration = -0.005
+    deceleration = -0.005
     maxVelocity = 10
     turnAngle = 6
     bulletVelocity = 13.0
@@ -79,8 +79,8 @@ class Ship(Shooter):
         if (self.heading.x == 0 and self.heading.y == 0):
             return
 
-        dx = self.heading.x * self.decelaration
-        dy = self.heading.y * self.decelaration
+        dx = self.heading.x * self.deceleration
+        dy = self.heading.y * self.deceleration
         self.changeVelocity(dx, dy)
 
     def changeVelocity(self, dx, dy):

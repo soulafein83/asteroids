@@ -80,7 +80,10 @@ def getIntersectPoint(p1, p2, p3, p4):
                 x = p3[0]
                 y = (m1 * x) + b1
             else:
-                assert false
+                # Unreachable: this branch requires m1 and m2 to be non-None,
+                # but we only get here when at least one of them is None.
+                raise AssertionError(
+                    "both lines vertical, yet treated as non-parallel")
 
         return ((x, y),)
     else:
@@ -147,10 +150,9 @@ def calculateIntersectPoint(p1, p2, p3, p4):
                 if res1 and res2:
                     point = [int(pp) for pp in point]
                     return point
-            except:
+            except (TypeError, ValueError, OverflowError):
                 # sometimes the value in a point are too large for PyGame's Rect class
-                str = "point was invalid  ", point
-                print(str)
+                print("point was invalid:", point)
 
         # This is the case where the infinately long lines crossed but
         # the line segments didn't

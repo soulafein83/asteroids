@@ -124,7 +124,7 @@ class Asteroids():
 
         clock = pygame.time.Clock()
 
-        frameCount = 0.0
+        frameCount = 0
         timePassed = 0.0
         self.fps = 0.0
         # Main loop
