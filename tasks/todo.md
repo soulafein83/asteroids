@@ -54,15 +54,15 @@ nie ginie od skał ani saucera. `Ship.draw()` rysuje pierścień tarczy gdy
 aktywna.
 
 **Acceptance criteria:**
-- [ ] statek nakładający się na power-up S dostaje `shieldTimer = 600`; power-up znika z listy i stage
-- [ ] z aktywną tarczą kolizja statek↔skała i statek↔saucer nie zabijają statku
-- [ ] tarcza wygasa po 600 `move()`; statek znów śmiertelny
-- [ ] ponowne podniesienie S przedłuża timer do 600
-- [ ] draw z tarczą nie crashuje (headless)
+- [x] statek nakładający się na power-up S dostaje `shieldTimer = 600`; power-up znika z listy i stage
+- [x] z aktywną tarczą kolizja statek↔skała i statek↔saucer nie zabijają statku
+- [x] tarcza wygasa po 600 `move()`; statek znów śmiertelny
+- [x] ponowne podniesienie S przedłuża timer do 600
+- [x] draw z tarczą nie crashuje (headless)
 
 **Verification:**
-- [ ] `python3 -m pytest` zielony
-- [ ] smoke EXIT=124
+- [x] `python3 -m pytest` zielony
+- [x] smoke EXIT=124
 
 **Dependencies:** P-2
 **Files likely touched:** `src/asteroids.py`, `src/ship.py`, `tests/test_pf.py`
@@ -111,10 +111,10 @@ cache'owane fonty (M-1) — statyczne surface w `__init__`, blit per frame.
 **Estimated scope:** S (2 pliki)
 
 ## Checkpoint: Fundament (po P-1, P-2)
-- [ ] `py_compile` czysty
-- [ ] `python3 -m pytest` zielony (46 + nowe)
-- [ ] smoke EXIT=124
-- [ ] atomic commit + push na fork
+- [x] `py_compile` czysty
+- [x] `python3 -m pytest` zielony (46 + nowe)
+- [x] smoke EXIT=124
+- [x] atomic commit + push na fork
 
 ## Checkpoint: Efekty (po P-3, P-4)
 - [ ] pełny suite zielony

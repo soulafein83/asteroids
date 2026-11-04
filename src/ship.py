@@ -16,6 +16,7 @@
 #    Copyright (C) 2018  Francisco Sanchez Arroyo
 #
 
+import pygame
 import random
 from util.vectorsprites import *
 from shooter import *
@@ -33,6 +34,9 @@ class Ship(Shooter):
     bulletVelocity = 13.0
     maxBullets = 4
     bulletTtl = 35
+    # A power-up effect lasts this many frames; picking the same power-up
+    # again refreshes the timer to a full duration (it does not stack).
+    powerUpTtl = 600
 
     def __init__(self, stage):
 
@@ -45,6 +49,13 @@ class Ship(Shooter):
         # Respawn safe zone: freshly created ships are invulnerable
         # for this many frames (TODO in the original code).
         self.respawnTimer = 180
+        # Power-up effect timers (P-3/P-4): frames remaining for the
+        # shield (S), extra bullets (E), rapid fire (R) and the fire
+        # cooldown.  All start at zero — a plain ship has none of them.
+        self.shieldTimer = 0
+        self.extraBulletsTimer = 0
+        self.rapidFireTimer = 0
+        self.cooldownTimer = 0
         pointlist = [(0, -10), (6, 10), (3, 7), (-3, 7), (-6, 10)]
 
         Shooter.__init__(self, position, heading, pointlist, stage)
@@ -54,6 +65,11 @@ class Ship(Shooter):
         # so draw() has no game-logic side effects.
         if self.visible and not self.inHyperSpace:
             VectorSprite.draw(self)
+            # P-3: an active shield renders as a circle around the ship.
+            if self.shieldTimer > 0:
+                pygame.draw.circle(
+                    self.stage.screen, (100, 180, 255),
+                    (int(self.position.x), int(self.position.y)), 16, 1)
 
         return self.transformedPointlist
 
@@ -92,6 +108,16 @@ class Ship(Shooter):
     def move(self):
         if self.respawnTimer > 0:
             self.respawnTimer -= 1
+        # Power-up timers count down each frame, clamped at zero so a
+        # long-idle ship never drifts into negative values.
+        if self.shieldTimer > 0:
+            self.shieldTimer -= 1
+        if self.extraBulletsTimer > 0:
+            self.extraBulletsTimer -= 1
+        if self.rapidFireTimer > 0:
+            self.rapidFireTimer -= 1
+        if self.cooldownTimer > 0:
+            self.cooldownTimer -= 1
         VectorSprite.move(self)
         self.decreaseThrust()
         # Hyperspace countdown and re-entry teleport. This used to be a
@@ -152,6 +178,17 @@ class Ship(Shooter):
             Shooter.fireBullet(self, heading, self.bulletTtl,
                                self.bulletVelocity)
             playSound("fire")
+
+    # P-3: a picked-up power-up arms the matching effect timer.  Only the
+    # shield (S) has an effect in this slice; E and R set their timers
+    # already, P-4 wires them to behaviour.
+    def applyPowerUp(self, letter):
+        if letter == "S":
+            self.shieldTimer = self.powerUpTtl
+        elif letter == "E":
+            self.extraBulletsTimer = self.powerUpTtl
+        elif letter == "R":
+            self.rapidFireTimer = self.powerUpTtl
 
     #
     def enterHyperSpace(self):

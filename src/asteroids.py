@@ -347,8 +347,9 @@ class Asteroids():
         shipHit, saucerHit = False, False
 
         # Safe area: a freshly respawned ship is invulnerable while the
-        # respawn timer is running.
-        safe = self.ship.respawnTimer > 0
+        # respawn timer is running, and a shielded ship (P-3) is
+        # invulnerable while the shield timer is running.
+        safe = self.ship.respawnTimer > 0 or self.ship.shieldTimer > 0
 
         # Rocks
         for rock in self.rockList:
@@ -399,6 +400,15 @@ class Asteroids():
                     Vector2d(rock.position.x, rock.position.y))
 
                 self.createDebris(rock)
+
+        # Power-ups (P-3): contact picks one up.  Iterate a copy of the
+        # list — the pickup removes the item from both this list and the
+        # stage while we are looping.
+        for powerUp in list(self.powerUpList):
+            if powerUp.collidesWith(self.ship):
+                self.ship.applyPowerUp(powerUp.letter)
+                self.powerUpList.remove(powerUp)
+                self.stage.removeSprite(powerUp)
 
         # Saucer (evaluated once per frame, outside the rock loop)
         if self.saucer is not None:

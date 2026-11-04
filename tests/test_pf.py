@@ -11,7 +11,7 @@ import random
 import pygame
 
 from util.vector2d import Vector2d
-from enemies import Rock
+from enemies import Rock, Saucer
 from item import PowerUp
 
 
@@ -180,3 +180,179 @@ def test_destroyed_rock_can_spawn_power_up(game, monkeypatch):
     assert rock not in game.rockList
     assert len(game.powerUpList) == 1
     assert game.powerUpList[0] in game.stage.spriteList
+
+
+# ---------------------------------------------------------------------
+# P-3: power-up pickup + shield (S)
+# ---------------------------------------------------------------------
+
+def _place_rock_crossing_ship(rock, ship, stage):
+    # checkPolygonCollision is line-segment intersection, so the ship must
+    # not sit fully inside the rock. Scan small offsets until the rock's
+    # outline actually crosses the ship's.
+    for dx in range(-20, 21):
+        for dy in range(-20, 21):
+            rock.position.x = ship.position.x + dx
+            rock.position.y = ship.position.y + dy
+            stage.drawSprites()
+            if rock.collidesWith(ship) and \
+                    rock.checkPolygonCollision(ship) is not None:
+                return
+    raise AssertionError("no crossing offset found")
+
+
+def test_ship_starts_without_power_ups(game):
+    ship = game.ship
+    assert ship.shieldTimer == 0
+    assert ship.extraBulletsTimer == 0
+    assert ship.rapidFireTimer == 0
+    assert ship.cooldownTimer == 0
+
+
+def test_power_up_timers_decrement_and_clamp(game):
+    ship = game.ship
+    ship.shieldTimer = 600
+    ship.extraBulletsTimer = 600
+    ship.rapidFireTimer = 600
+    ship.cooldownTimer = 5
+    ship.move()
+    assert ship.shieldTimer == 599
+    assert ship.extraBulletsTimer == 599
+    assert ship.rapidFireTimer == 599
+    assert ship.cooldownTimer == 4
+
+    # A zero timer must clamp, not go negative.
+    for attr in ("shieldTimer", "extraBulletsTimer",
+                 "rapidFireTimer", "cooldownTimer"):
+        setattr(ship, attr, 0)
+    ship.move()
+    assert ship.shieldTimer == 0
+    assert ship.extraBulletsTimer == 0
+    assert ship.rapidFireTimer == 0
+    assert ship.cooldownTimer == 0
+
+
+def test_pickup_sets_shield_and_removes_power_up(game):
+    ship = game.ship
+    ship.respawnTimer = 0
+    pu = PowerUp(game.stage,
+                 Vector2d(ship.position.x, ship.position.y), "S")
+    game.stage.addSprite(pu)
+    game.powerUpList.append(pu)
+
+    game.stage.drawSprites()
+    game.checkCollisions()
+
+    assert ship.shieldTimer == 600
+    assert game.powerUpList == []
+    assert pu not in game.stage.spriteList
+
+
+def test_pickup_refreshes_shield_timer(game):
+    # Picking up S again before expiry refreshes the timer to a full 600.
+    ship = game.ship
+    ship.shieldTimer = 100
+    pu = PowerUp(game.stage,
+                 Vector2d(ship.position.x, ship.position.y), "S")
+    game.stage.addSprite(pu)
+    game.powerUpList.append(pu)
+
+    game.stage.drawSprites()
+    game.checkCollisions()
+
+    assert ship.shieldTimer == 600
+
+
+def test_shield_protects_from_rock(game):
+    ship = game.ship
+    ship.respawnTimer = 0
+    ship.shieldTimer = 600
+
+    rock = Rock(game.stage,
+                Vector2d(ship.position.x, ship.position.y),
+                Rock.largeRockType)
+    game.stage.addSprite(rock)
+    game.rockList.append(rock)
+    _place_rock_crossing_ship(rock, ship, game.stage)
+    game.checkCollisions()
+
+    assert game.gameState == 'playing', \
+        "shielded ship must survive the rock, state=%s" % game.gameState
+    assert game.lives == 5, "lives must stay 5, got %d" % game.lives
+    assert rock in game.rockList
+
+
+def test_shield_expires_and_ship_becomes_mortal(game):
+    ship = game.ship
+    ship.respawnTimer = 0
+    ship.shieldTimer = 600
+
+    rock = Rock(game.stage,
+                Vector2d(ship.position.x, ship.position.y),
+                Rock.largeRockType)
+    game.stage.addSprite(rock)
+    game.rockList.append(rock)
+    _place_rock_crossing_ship(rock, ship, game.stage)
+
+    # 599 moves: one frame of shield left -> still safe.
+    for _ in range(599):
+        ship.move()
+    assert ship.shieldTimer == 1
+    game.stage.drawSprites()
+    game.checkCollisions()
+    assert game.gameState == 'playing'
+
+    # 600th move: shield gone -> the same rock now kills.
+    ship.move()
+    assert ship.shieldTimer == 0
+    game.stage.drawSprites()
+    game.checkCollisions()
+    assert game.gameState == 'exploding'
+
+
+def test_shield_protects_from_saucer(game):
+    ship = game.ship
+    ship.respawnTimer = 0
+    ship.shieldTimer = 600
+
+    saucer = Saucer(game.stage, Saucer.largeSaucerType, ship)
+    saucer.position.x = ship.position.x
+    saucer.position.y = ship.position.y
+    game.stage.addSprite(saucer)
+    game.saucer = saucer
+
+    game.stage.drawSprites()
+    game.checkCollisions()
+
+    assert game.gameState == 'playing'
+    assert game.saucer is saucer, \
+        "a shielded ship must not destroy the saucer on contact"
+
+
+def test_bullets_do_not_destroy_power_ups(game):
+    # Classic: bullets pass through power-ups; only contact picks them up.
+    ship = game.ship
+    ship.position.x = 100
+    ship.position.y = 100
+    ship.angle = -90  # fires straight right
+
+    pu = PowerUp(game.stage, Vector2d(150, 100), "E")
+    game.stage.addSprite(pu)
+    game.powerUpList.append(pu)
+
+    ship.fireBullet()
+    b = ship.bullets[-1]
+    for _ in range(4):  # 4 * 13 = 52 -> bullet at x=152
+        b.move()
+    game.stage.drawSprites()
+    game.checkCollisions()
+
+    assert pu in game.powerUpList
+    assert pu in game.stage.spriteList
+
+
+def test_shield_draw_does_not_crash(game):
+    ship = game.ship
+    ship.shieldTimer = 600
+    game.stage.screen.fill((10, 10, 10))
+    ship.draw()
