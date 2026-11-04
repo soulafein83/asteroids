@@ -228,19 +228,33 @@ z `src/` i z losowego CWD).
   (już jest), ale dodatkowo `transformedPointlist` może być stale gdy draw
   nie został wywołany w tej klatce (attract mode).
 
-### M-4. `Saucer` — `maxBullets = 1` na klasę, ale `bulletTtl = [60, 90]`
+### M-4. ~~`Saucer` — `maxBullets = 1` na klasę, ale `bulletTtl = [60, 90]`~~ ✅ NAPRAWIONE
 - `src/badies.py:122-123` — `maxBullets` jako klasowy atrybut = 1 dla OBU
   typów; `bulletTtl` jako lista indeksowana przez `saucerType`. OK, ale
   `maxBullets` powinien być instancyjny, żeby saucer mógł strzelić 2 razy
   bez czekania na expiry.
+- **Poprawka (zrealizowana 2026-11-04, M-C `6eda5bc`):** `maxBullets`
+  przeniesione z atrybutu klasowego do `__init__` (`self.maxBullets = 1`)
+  — zachowanie bez zmian, ale wartość jest teraz instancyjna i
+  per-type limits (np. mały=1, duży=2) to jedna linijka.
+- **Weryfikacja:** testy `tests/test_mc.py` — klasa nie ma już
+  `maxBullets`, wartość instancyjna == 1, druga strzelba odrzucana
+  póki pierwsza nie wygaśnie, zmiana wartości jednego saucera nie
+  dotyczy innych.
 
-### M-5. `ThrustJet` — `self.ship` nie jest zresetowany przy `createNewShip`
+### M-5. ~~`ThrustJet` — `self.ship` nie jest zresetowany przy `createNewShip`~~ ✅ NAPRAWIONE
 - `src/ship.py:161-174` — `ThrustJet` trzyma referencję do `ship`; gdy
   `createNewShip` tworzy nowy statek, stary `thrustJet` jest usuwany ze
   stage, ale jeśli ktoś go reużyje (np. respawn), `ship` wskazuje na STARY
   statek.
-- Poprawka: `ThrustJet.__init__` bez `ship`, albo `thrustJet.ship = newShip`
-  w `createNewShip`.
+- **Poprawka (zrealizowana 2026-11-04, M-C `6eda5bc`):** w
+  `createNewShip` jawne `self.ship.thrustJet.ship = self.ship` —
+  wiązanie jetu z nowym statkiem jest explicytne (explicit) i nie zależy od
+  incydentalnego `ThrustJet(stage, self)` w `Ship.__init__`
+  (opcja 2 z propozycji).
+- **Weryfikacja:** testy `tests/test_mc.py` — po `createNewShip`
+  `ship.thrustJet.ship is ship`, a po symulacji ścieżki respawnu stary
+  jet nie jest już na stage.
 
 ### M-6. ~~`Vector2d` — brak operatorów, brak `__eq__`, brak `__repr__`~~ ✅ NAPRAWIONE
 - `src/util/vector2d.py:20-26` — kom Komentarz "needs a copy constructor".
