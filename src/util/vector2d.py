@@ -17,10 +17,35 @@
 #
 
 
+import math
+
+
 class Vector2d:
 
     def __init__(self, x, y):
         self.x = x
         self.y = y
 
-# needs a copy constructor and method for vector addition etc
+    # Copy-constructor style arithmetic: operators always return a NEW
+    # vector and never mutate the operands (M-6).
+    def __add__(self, other):
+        return Vector2d(self.x + other.x, self.y + other.y)
+
+    def __sub__(self, other):
+        return Vector2d(self.x - other.x, self.y - other.y)
+
+    def __mul__(self, scalar):
+        return Vector2d(self.x * scalar, self.y * scalar)
+
+    def __rmul__(self, scalar):
+        return self.__mul__(scalar)
+
+    def __eq__(self, other):
+        return (isinstance(other, Vector2d)
+                and self.x == other.x and self.y == other.y)
+
+    def __repr__(self):
+        return f"Vector2d(x={self.x}, y={self.y})"
+
+    def magnitude(self):
+        return math.hypot(self.x, self.y)
