@@ -110,7 +110,8 @@ class Saucer(Shooter):
     scales = (1.5, 1.0)
     scores = (500, 1000)
     pointlist = [(-9,0), (-3,-3), (-2,-6), (-2,-6), (2,-6), (3,-3), (9,0), (-9,0), (-3,4), (3,4), (9,0)]
-    maxBullets = 1
+    # maxBullets is per-instance (M-4), so per-type limits are possible
+    # without shared mutable class state.
     bulletTtl = [60, 90]
     bulletVelocity = 5  
     
@@ -119,6 +120,7 @@ class Saucer(Shooter):
         heading = Vector2d(self.velocities[saucerType], 0.0)
         self.saucerType = saucerType
         self.ship = ship
+        self.maxBullets = 1
         self.scoreValue = self.scores[saucerType]
         stopSound("ssaucer")
         stopSound("lsaucer")            

@@ -89,6 +89,9 @@ class Asteroids():
             [self.stage.spriteList.remove(debris)
              for debris in self.ship.shipDebrisList]
         self.ship = Ship(self.stage)
+        # M-5: make the jet's ship binding explicit so a jet can never
+        # keep pointing at a stale ship (guards against jet reuse).
+        self.ship.thrustJet.ship = self.ship
         self.stage.addSprite(self.ship.thrustJet)
         self.stage.addSprite(self.ship)
 
