@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "asteroids"
+version = "0.1.0"
+description = "Python/pygame clone of the classic 1979 Atari Asteroids arcade game"
+readme = "readme.md"
+requires-python = ">=3.12"
+license = { text = "GPL-3.0-or-later" }
+dependencies = ["pygame-ce>=2.5"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[tool.setuptools]
+# The game's modules are laid out flat under src/ (not a src-layout
+# package), so expose src/ as the top-level module root: with an
+# editable install, 'import asteroids / ship / stage / enemies / ...'
+# then works from any directory. The plain 'python3 src/asteroids.py'
+# run mode is unaffected.
+package-dir = { "" = "src" }
+py-modules = [
+    "asteroids",
+    "enemies",
+    "ship",
+    "shooter",
+    "soundManager",
+    "stage",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["util*"]
