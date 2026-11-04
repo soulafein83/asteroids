@@ -33,8 +33,18 @@ class Rock(VectorSprite):
     velocities = (1.5, 3.0, 4.5)    
     scales = (2.5, 1.5, 0.6)
 
-    # tracks the last rock shape to be generated
-    rockShape = 1    
+    # The four rock outlines (indexed 1..4 via rockShapes[shape-1]);
+    # each rock instance picks its own shape in __init__.
+    rockShapes = (
+        [(-4,-12), (6,-12), (13, -4), (13, 5), (6, 13), (0,13), (0,4),
+         (-8,13), (-15, 4), (-7,1), (-15,-3)],
+        [(-6,-12), (1,-5), (8, -12), (15, -5), (12,0), (15,6), (5,13),
+         (-7,13), (-14,7), (-14,-5)],
+        [(-7,-12), (1,-9), (8,-12), (15,-5), (8,-3), (15,4), (8,12),
+         (-3,10), (-6,12), (-14,7), (-10,0), (-14,-5)],
+        [(-7,-11), (3,-11), (13,-5), (13,-2), (2,2), (13,8), (6,14),
+         (2,10), (-7,14), (-15,5), (-15,-5), (-5,-5), (-7,-11)],
+    )
     
     # Create the rock polygon to the given scale
     def __init__(self, stage, position, rockType):
@@ -51,6 +61,8 @@ class Rock(VectorSprite):
             heading.y = 0.1
                         
         self.rockType = rockType  
+        # Each rock picks its own shape so there is no shared class state.
+        self.rockShape = random.randint(1, 4)
         pointlist = self.createPointList()
         newPointList = [self.scale(point, scale) for point in pointlist]        
         VectorSprite.__init__(self, position, heading, newPointList)
@@ -58,28 +70,9 @@ class Rock(VectorSprite):
     
     # Create different rock type pointlists    
     def createPointList(self):
-        
-        if (Rock.rockShape == 1):
-            pointlist = [(-4,-12), (6,-12), (13, -4), (13, 5), (6, 13), (0,13), (0,4),\
-                     (-8,13), (-15, 4), (-7,1), (-15,-3)]
- 
-        elif (Rock.rockShape == 2):
-            pointlist = [(-6,-12), (1,-5), (8, -12), (15, -5), (12,0), (15,6), (5,13),\
-                         (-7,13), (-14,7), (-14,-5)]
-            
-        elif (Rock.rockShape == 3):
-            pointlist = [(-7,-12), (1,-9), (8,-12), (15,-5), (8,-3), (15,4), (8,12),\
-                         (-3,10), (-6,12), (-14,7), (-10,0), (-14,-5)]            
-
-        elif (Rock.rockShape == 4):
-            pointlist = [(-7,-11), (3,-11), (13,-5), (13,-2), (2,2), (13,8), (6,14),\
-                         (2,10), (-7,14), (-15,5), (-15,-5), (-5,-5), (-7,-11)]
-
-        Rock.rockShape += 1
-        if (Rock.rockShape == 5):
-            Rock.rockShape = 1
-
-        return pointlist
+        # Clamp so out-of-range shapes (0, 5, ...) still resolve to a
+        # valid outline instead of raising or returning stale state.
+        return self.rockShapes[max(1, min(4, self.rockShape)) - 1]
     
     # Spin the rock when it moves
     def move(self):
@@ -102,10 +95,8 @@ class Debris(Point):
     def move(self):    
         Point.move(self)
         r,g,b = self.color
-        r -= 5
-        g -= 5
-        b -= 5
-        self.color = (r,g,b)
+        # Clamp so the fade never goes negative (drawing needs valid bytes).
+        self.color = (max(0, r-5), max(0, g-5), max(0, b-5))
         
 
 # Flying saucer, shoots at player
@@ -137,6 +128,8 @@ class Saucer(Shooter):
             playSoundContinuous("ssaucer")
         self.laps = 0
         self.lastx = 0
+        # Fire on a timer (every 30-60 frames), not every frame.
+        self.shootTimer = random.randint(30, 60)
         
         # Scale the shape and create the VectorSprite
         newPointList = [self.scale(point, self.scales[saucerType]) for point in self.pointlist]
@@ -145,12 +138,15 @@ class Saucer(Shooter):
     def move(self):        
         Shooter.move(self)  
         
-        if (self.position.x > self.stage.width * 0.33) and (self.position.x < self.stage.width * 0.66):
-            self.heading.y = self.heading.x
-        else:
-            self.heading.y = 0
+        # Fly flat across the screen (no mid-screen dive, W-6).
+        self.heading.y = 0
         
-        self.fireBullet()
+        self.shootTimer -= 1
+        if self.shootTimer <= 0:
+            # Never attack a freshly respawned ship (safe zone, W-7).
+            if self.ship is not None and self.ship.respawnTimer <= 0:
+                self.fireBullet()
+            self.shootTimer = random.randint(30, 60)
         
         # have we lapped?        
         if self.lastx > self.position.x:
@@ -167,7 +163,7 @@ class Saucer(Shooter):
             mag = math.sqrt(dx*dx + dy*dy);
             if mag < 1e-6:
                 # Ship is sitting exactly on the saucer — no direction to aim,
-                # skip this frame (move() calls fireBullet every frame anyway).
+                # skip this shot.
                 return
             heading = Vector2d(self.bulletVelocity * (dx/mag), self.bulletVelocity * (dy/mag))
             position = Vector2d(self.position.x, self.position.y)          

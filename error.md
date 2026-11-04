@@ -123,12 +123,18 @@ z `src/` i z losowego CWD).
   po 8 `bullet.move()` + `checkCollisions` → saucer zniszczony, score == 500
   dokładnie raz.
 
-### W-4. `Rock` — klasowe `rockShape` mutowane w `createPointList`
+### W-4. ~~`Rock` — klasowe `rockShape` mutowane w `createPointList`~~ ✅ NAPRAWIONE
 - `src/badies.py:37, 78-80` — stan globalny (klasy) zamiast instancyjnego;
   przy przyszłej wielowątkowości / testach — chaos. Dodatkowo `pointlist`
   może pozostać niezdefiniowane, gdyby `rockShape` miało wartość spoza 1..4
   (brak `else` fallback).
-- Poprawka: `self.rockShape` + `else: pointlist = shapes[0]`.
+- **Poprawka (zrealizowana 2026-11-04):** 4 kontury przeniesione do klasowego
+  tuple `Rock.rockShapes`; każda instancja losuje `self.rockShape`
+  w `__init__`; `createPointList` zwraca
+  `rockShapes[max(1, min(4, shape)) - 1]` — kształty spoza 1..4 są
+  przycinane do zakresu 1..4, nigdy crash ani `NameError`.
+- **Weryfikacja:** test — 20 skal: wszystkie kształty 1-4 osiągalne,
+  brak klasowego `rockShape`; kształty 0/5 przycinane do validnych konturów.
 
 ### W-5. `Ship.draw()` ma efekt uboczny (decrement `hyperSpaceTtl`)
 - `src/ship.py:54` — logika gry w metodzie rysowania; przy frame-advance w
@@ -136,13 +142,19 @@ z `src/` i z losowego CWD).
   ticki.
 - Poprawka: przenieś TTL do `Ship.move()` albo do `Asteroids.playing()`.
 
-### W-6. `Saucer.move` — `heading.y = heading.x` w środkowym pasie
+### W-6. ~~`Saucer.move` — `heading.y = heading.x` w środkowym pasie~~ ✅ NAPRAWIONE
 - `src/badies.py:148-151` — saucer w pasie 33-66% szerokości leci diagonalnie
   w DOŁ w pełnej prędkości x; po opuszczeniu pasa `heading.y = 0` i saucer
   nigdy nie wraca do góry — tor jest asymetryczny (w oryginale saucer leciał
   prosto, a celował).
-- Poprawka: prosta trajektoria pozioma + oddzielny timer strzałów (np. co 30-60
-  klatek), a nie `fireBullet()` co klatkę.
+- **Poprawka (zrealizowana 2026-11-04):** saucer zawsze leci poziomo
+  (`heading.y = 0`, brak nurkowania w pasie środkowym); strzelanie na timerze
+  `shootTimer` (losowo 30-60 klatek), wypalany 1× gdy timer się zeruje,
+  i tylko gdy `ship.respawnTimer <= 0` (bramka safe zone z W-7).
+- **Weryfikacja:** test — 60 klatek: y nie zmienia się (100.00), 0 strzałów
+  przy statku w safe zone; po `respawnTimer = 0` timer dobiega i strzela
+  dokładnie 1× w cel (kierunek do statku), timer re-armowany;
+  `maxBullets == 1` respektowane.
 
 ### W-7. ~~Brak strefy bezpiecznej po śmierci (TODO z kodu)~~ ✅ NAPRAWIONE
 - `src/asteroids.py:21` — "safe area on new life". W oryginale statek miał
@@ -167,11 +179,14 @@ z `src/` i z losowego CWD).
 - **Weryfikacja:** test — po `initialiseGame()` lives == 5 (startLives),
   nawet jeśli przed nową grą `lives == 7`; `livesList` ma 4 statki.
 
-### W-9. `Debris` — kolizje z niczym, ale TTL=50 klatek, fade 5/frame
+### W-9. ~~`Debris` — kolizje z niczym, ale TTL=50 klatek, fade 5/frame~~ ✅ NAPRAWIONE
 - `src/badies.py:100-108` — OK, ale `r,g,b = self.color` + `r -= 5` bez
   `max(0, ...)` — przy zmianie TTL w przyszłości kolor pójdzie w ujemne
   wartości i `aalines` dostanie tuple z ujemnym bajtem.
-- Poprawka: `self.color = (max(0, r), max(0, g), max(0, b))`.
+- **Poprawka (zrealizowana 2026-11-04):**
+  `self.color = (max(0, r-5), max(0, g-5), max(0, b-5))`.
+- **Weryfikacja:** test — fade z (10,5,0) dociera do (0,0,0) i tam się
+  zatrzymuje; wartości nigdy nie są ujemne.
 
 ### W-10. ~~`Bullet.move` — `shooter.bullets.remove(self)` może rzucić ValueError~~ ✅ NAPRAWIONE
 - `src/shooter.py:60-63` — `Point.move` już usunął bullet ze `stage.spriteList`
@@ -315,4 +330,5 @@ z `src/` i z losowego CWD).
 9. ~~**M-14** (requirements.txt)~~ — ✅ naprawione (2026-11-04).
 10. ~~**W-1, W-2, W-8**~~ — ✅ naprawione (2026-11-04, plaster W-A).
 11. ~~**W-3, W-7, W-10**~~ — ✅ naprawione (2026-11-04, plaster W-B).
-12. Reszta W/M — przy okazji.
+12. ~~**W-4, W-6, W-9**~~ — ✅ naprawione (2026-11-04, plaster W-C).
+13. Reszta W/M — przy okazji.
