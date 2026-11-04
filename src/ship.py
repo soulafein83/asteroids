@@ -50,19 +50,10 @@ class Ship(Shooter):
         Shooter.__init__(self, position, heading, pointlist, stage)
 
     def draw(self):
-        if self.visible:
-            if not self.inHyperSpace:
-                VectorSprite.draw(self)
-            else:
-                self.hyperSpaceTtl -= 1
-                if self.hyperSpaceTtl == 0:
-                    self.inHyperSpace = False
-                    self.color = (255, 255, 255)
-                    self.thrustJet.color = (255, 255, 255)
-                    self.position.x = random.randrange(0, self.stage.width)
-                    self.position.y = random.randrange(0, self.stage.height)
-                    position = Vector2d(self.position.x, self.position.y)
-                    self.thrustJet.position = position
+        # Rendering only — the hyperspace TTL logic lives in move() (W-5),
+        # so draw() has no game-logic side effects.
+        if self.visible and not self.inHyperSpace:
+            VectorSprite.draw(self)
 
         return self.transformedPointlist
 
@@ -103,6 +94,18 @@ class Ship(Shooter):
             self.respawnTimer -= 1
         VectorSprite.move(self)
         self.decreaseThrust()
+        # Hyperspace countdown and re-entry teleport. This used to be a
+        # side-effect of draw() (W-5) — game logic belongs in move().
+        if self.inHyperSpace:
+            self.hyperSpaceTtl -= 1
+            if self.hyperSpaceTtl == 0:
+                self.inHyperSpace = False
+                self.color = (255, 255, 255)
+                self.thrustJet.color = (255, 255, 255)
+                self.position.x = random.randrange(0, self.stage.width)
+                self.position.y = random.randrange(0, self.stage.height)
+                self.thrustJet.position = Vector2d(
+                    self.position.x, self.position.y)
 
     # Break the shape of the ship down into several lines
     # Ship shape - [(0, -10), (6, 10), (3, 7), (-3, 7), (-6, 10)]

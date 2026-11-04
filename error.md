@@ -136,11 +136,18 @@ z `src/` i z losowego CWD).
 - **Weryfikacja:** test — 20 skal: wszystkie kształty 1-4 osiągalne,
   brak klasowego `rockShape`; kształty 0/5 przycinane do validnych konturów.
 
-### W-5. `Ship.draw()` ma efekt uboczny (decrement `hyperSpaceTtl`)
+### W-5. ~~`Ship.draw()` ma efekt uboczny (decrement `hyperSpaceTtl`)~~ ✅ NAPRAWIONE
 - `src/ship.py:54` — logika gry w metodzie rysowania; przy frame-advance w
   pauzie (K_o) czy debugowaniu draw może być wywołany więcej/mniej razy niż
   ticki.
-- Poprawka: przenieś TTL do `Ship.move()` albo do `Asteroids.playing()`.
+- **Poprawka (zrealizowana 2026-11-04):** zliczanie TTL i teleport przy
+  powrocie z hyperspace przeniesione do `Ship.move()` (za
+  `VectorSprite.move`); `draw()` jest czysty — rysuje tylko gdy statek nie
+  jest w hyperspace i zawsze zwraca `transformedPointlist`.
+- **Weryfikacja:** test — `draw()` czysty (50 wywołań, ttl bez zmian);
+  teleport następuje po dokładnie 100. `move()` BEZ wywołania `draw()`:
+  pozycja wylosowana w granicach ekranu, kolor biały, thrustJet
+  zsynchronizowany; drugi cykl hyperspace działa.
 
 ### W-6. ~~`Saucer.move` — `heading.y = heading.x` w środkowym pasie~~ ✅ NAPRAWIONE
 - `src/badies.py:148-151` — saucer w pasie 33-66% szerokości leci diagonalnie
@@ -331,4 +338,5 @@ z `src/` i z losowego CWD).
 10. ~~**W-1, W-2, W-8**~~ — ✅ naprawione (2026-11-04, plaster W-A).
 11. ~~**W-3, W-7, W-10**~~ — ✅ naprawione (2026-11-04, plaster W-B).
 12. ~~**W-4, W-6, W-9**~~ — ✅ naprawione (2026-11-04, plaster W-C).
-13. Reszta W/M — przy okazji.
+13. ~~**W-5**~~ — ✅ naprawione (2026-11-04, plaster W-D). Blok W zamknięty.
+14. Reszta M — przy okazji.
