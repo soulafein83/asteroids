@@ -21,30 +21,42 @@ import sys
 import os
 import random
 from pygame.locals import *
+from util import RES_DIR
 
 sounds = {}  # create empty dictionary of sounds
+sound_available = True
 
 
 def initSoundManager():
-    pygame.mixer.init()
-    sounds["fire"] = pygame.mixer.Sound("../res/FIRE.WAV")
-    sounds["explode1"] = pygame.mixer.Sound("../res/EXPLODE1.WAV")
-    sounds["explode2"] = pygame.mixer.Sound("../res/EXPLODE2.WAV")
-    sounds["explode3"] = pygame.mixer.Sound("../res/EXPLODE3.WAV")
-    sounds["lsaucer"] = pygame.mixer.Sound("../res/LSAUCER.WAV")
-    sounds["ssaucer"] = pygame.mixer.Sound("../res/SSAUCER.WAV")
-    sounds["thrust"] = pygame.mixer.Sound("../res/THRUST.WAV")
-    sounds["sfire"] = pygame.mixer.Sound("../res/SFIRE.WAV")
-    sounds["extralife"] = pygame.mixer.Sound("../res/LIFE.WAV")
+    global sound_available
+    try:
+        if not pygame.mixer.get_init():
+            pygame.mixer.init()
+        sounds["fire"] = pygame.mixer.Sound(os.path.join(RES_DIR, "FIRE.WAV"))
+        sounds["explode1"] = pygame.mixer.Sound(os.path.join(RES_DIR, "EXPLODE1.WAV"))
+        sounds["explode2"] = pygame.mixer.Sound(os.path.join(RES_DIR, "EXPLODE2.WAV"))
+        sounds["explode3"] = pygame.mixer.Sound(os.path.join(RES_DIR, "EXPLODE3.WAV"))
+        sounds["lsaucer"] = pygame.mixer.Sound(os.path.join(RES_DIR, "LSAUCER.WAV"))
+        sounds["ssaucer"] = pygame.mixer.Sound(os.path.join(RES_DIR, "SSAUCER.WAV"))
+        sounds["thrust"] = pygame.mixer.Sound(os.path.join(RES_DIR, "THRUST.WAV"))
+        sounds["sfire"] = pygame.mixer.Sound(os.path.join(RES_DIR, "SFIRE.WAV"))
+        sounds["extralife"] = pygame.mixer.Sound(os.path.join(RES_DIR, "LIFE.WAV"))
+    except (pygame.error, FileNotFoundError) as e:
+        print('Warning, sound disabled:', e)
+        sounds.clear()
+        sound_available = False
 
 
 def playSound(soundName):
-    channel = sounds[soundName].play()
+    if sound_available:
+        sounds[soundName].play()
 
 
 def playSoundContinuous(soundName):
-    channel = sounds[soundName].play(-1)
+    if sound_available:
+        sounds[soundName].play(-1)
 
 
 def stopSound(soundName):
-    channel = sounds[soundName].stop()
+    if sound_available:
+        sounds[soundName].stop()

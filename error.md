@@ -1,0 +1,294 @@
+# error.md — przegląd kodu TheBeachLab/asteroids
+
+Repo: https://github.com/TheBeachLab/asteroids
+Klon: `asteroids/` (lokalnie, bez własnych commitów na razie)
+Zweryfikowano: 2026-11-04, Python 3.14.9 + pygame-ce 2.5.7 (SDL 2.32.74), Linux x86_64
+
+**Uwaga — dwa środowiska:** agent testuje w Python 3.14.9 + systemowy
+pygame-ce 2.5.7 (bez venv). Użytkownik działa na CachyOS z **Fish shell**,
+Python 3.12.13 i własnym `.venv/` (pygame-ce 2.5.8). Użytkownik uruchamia:
+`cd asteroids && source .venv/bin/activate.fish && python3 src/asteroids.py`.
+Wszystko, co wymaga pygame u użytkownika, musi działać w jego `.venv/`
+(venv utworzony przez agenta wskazywałby na jego 3.14, a nie 3.12).
+
+## Stan zgodności z aktualnym systemem
+
+| Element | Wymagane | W systemie | OK? |
+|---|---|---|---|
+| Python | 3.x | 3.14.9 | tak — kod kompiluje się bez błędów (`py_compile`) |
+| pygame | 2.x | pygame-ce 2.5.7 | tak — gra rusza (headless smoke-test) |
+| `SDL_VIDEODRIVER=dummy` | test bez ekranu | działa | tak |
+| `src/util/geometry.py` sam-test | asserty | przechodzi | tak |
+
+**Gruba sprawa:** ~~gra uruchamia się poprawnie TYLKO gdy CWD = katalog `src/`
+(zobacz K-1)~~ — NAPRAWIONE (2026-11-04): ścieżki aktywów są teraz
+zależne od pliku (`__file__`), nie CWD. Gra rusza z dowolnego katalogu (z rootu repo,
+z `src/` i z losowego CWD).
+
+---
+
+## Krytyczne (blokują uruchomienie / crash w grze)
+
+### K-1. ~~Ścieżki względne do aktywów (`../res/...`) — crash poza `src/`~~ ✅ NAPRAWIONE
+- `src/soundManager.py:30-38` — `pygame.mixer.Sound("../res/FIRE.WAV")` itd.
+- `src/asteroids.py:204-205, 227, 235, 405` — `pygame.font.Font('../res/Hyperspace.otf', ...)`
+- **Poprawka (zrealizowana 2026-11-04):**
+  - `src/util/__init__.py` — nowa stała `RES_DIR` liczona z `os.path.abspath(__file__)`
+    (3× `dirname`: `<root>/src/util/__init__.py` → `<root>`), więc niezależna od CWD.
+  - `src/soundManager.py` — `from util import RES_DIR`, wszystkie 9 dźwięków
+    przez `os.path.join(RES_DIR, "...")`.
+  - `src/asteroids.py` — `from util import RES_DIR`, stała
+    `FONT_PATH = os.path.join(RES_DIR, "Hyperspace.otf")`, wszystkie 6 użyciów fontu
+    zmienione na `pygame.font.Font(FONT_PATH, ...)`.
+- **Weryfikacja:** `py_compile` OK; headless smoke-test (5 s) przechodzi z roota repo,
+  z `src/` i z losowego CWD. Font renderowany co klatkę w attract mode — crash
+  przy złej ścieżce objawiłby się natychmiast.
+
+### K-2. ~~ZeroDivisionError w `Saucer.fireBullet`~~ ✅ NAPRAWIONE
+- `src/badies.py:167-168` — `mag = sqrt(dx*dx + dy*dy)` może być 0, gdy statek
+  wyląduje po hiperprzestrzeni dokładnie na pozycji saucera → crash całej gry.
+- **Poprawka (zrealizowana 2026-11-04):** guard `if mag < 1e-6: return` —
+  bez kierunku celowania saucer pomija klatkę; `move()` wywołuje
+  `fireBullet()` co klatkę, więc odda strzał, gdy statek się przesunie.
+- **Weryfikacja:** test jednostkowy — statek dokładnie na saucerze: bez
+  wyjątku, bez kuli; statek z odchytem: kula utworzona z poprawnym
+  kierunkiem. Smoke-test gry przechodzi.
+
+### K-3. Brak `pygame.quit()` / `sys.exit` bez sprzątania
+- `src/asteroids.py:247, 250` — `sys.exit(0)` przy QUIT/ESC bez `pygame.quit()`.
+- Poprawka:
+  ```python
+  if event.type == QUIT:
+      pygame.quit(); sys.exit(0)
+  ```
+
+### K-4. `Stage` startuje WYŁĄCZNIE w fullscreenie
+- `src/stage.py:35` — `pygame.display.set_mode(dimensions, FULLSCREEN)`.
+  Linia 38 (windowed) jest zakomentowana. `K_f` przełącza, ale start w FS
+  na systemach multi-monitor potrafi zająć nieprawidłowy monitor.
+- Poprawka: windowed domyślnie, FS przez flagę/klawisz; opcjonalnie
+  `pygame.display.set_mode((1024, 768))`.
+
+### K-5. ~~Crash przy braku dostępu do audio (EPERM)~~ ✅ NAPRAWIONE
+- Odkryte 2026-11-04 u użytkownika (CachyOS, PipeWire): `pygame.mixer.init()`
+  rzuca `pygame.error: Couldn't set hardware audio parameters: Operation not
+  permitted` → gra nie ruszała wcale, mimo że wideo działa.
+- Przyczyna systemowa (u użytkownika, do zdiagnozowania): brak grupy `audio`,
+  brak dostępu do `/dev/snd` lub SDL próbuje ALSA zamiast Pulse/PipeWire.
+  Diagnostyka: `groups`, `systemctl --user status pipewire wireplumber`,
+  `pactl info`; obejście: `SDL_AUDIODRIVER=pulseaudio python3 src/asteroids.py`.
+- **Poprawka w kodzie (zrealizowana 2026-11-04):** brak audio nie może kruszyć gry.
+  - `src/soundManager.py` — `initSoundManager()` owinięty w `try/except
+    (pygame.error, FileNotFoundError)`; flaga modułowa `sound_available`;
+    po niepowodzeniu: `sounds.clear()`, `sound_available = False`, print ostrzeżenia.
+  - `playSound` / `playSoundContinuous` / `stopSound` — no-op gdy
+    `sound_available` jest `False`.
+  - Poza tym: usunięte nieużywane `channel = ...` (zamyka M-10).
+- **Weryfikacja:** test symulacji EPERM (`pygame.mixer.init` podrasowany tak,
+  żeby rzucał dokładnie ten błąd): `initSoundManager` nie rzuca,
+  `sound_available=False`, `play/stop` bezpieczne; normalny ścieżka (dummy
+  audio driver): 9 dźwięków wczytanych, odtwarzanie OK. Headless smoke-test
+  gry przechodzi.
+
+---
+
+## Wysokie (bugi w logice / stabilność)
+
+### W-1. `displayScore` — format `"%02d"` nie skaluje się z wynikiem
+- `src/asteroids.py:228` — przy 100+ punktach format staje się bezsensowny,
+  a wynik w oryginale owijał się przy 100 000.
+- Poprawka: `"%04d" % min(self.score, 99999)` albo bez fill.
+
+### W-2. `addLife` przy dużej liczbie żyć wyjeżdża poza ekran
+- `src/asteroids.py:97-98` — `position.x = width - lifeNumber * rect.width - 10`;
+  po kilkunastu extra life statek-wyświetlacz-życia leci w ujemne x.
+- Poprawka: modulo liczbą mieściecych się żetonów albo `max(..., 10)`.
+
+### W-3. `checkCollisions` — saucer oceniany w pętli po każdej skale
+- `src/asteroids.py:316-327` — blok saucera siedzi WĄTRZE pętli `for rock`,
+  więc logika saucera jest sprawdzana N razy na rundę (N = liczba skal).
+  Dziś działa "przypadkiem" (bullet ttl=0 po pierwszym trafieniu), ale to
+  mina — np. score +500 mógłby zostać doliczony N-krotnie, gdyby `bulletCollision`
+  nie zerwał ttl.
+- Poprawka: przenieść blok saucera za pętlę po skalach (linia ~357).
+
+### W-4. `Rock` — klasowe `rockShape` mutowane w `createPointList`
+- `src/badies.py:37, 78-80` — stan globalny (klasy) zamiast instancyjnego;
+  przy przyszłej wielowątkowości / testach — chaos. Dodatkowo `pointlist`
+  może pozostać niezdefiniowane, gdyby `rockShape` miało wartość spoza 1..4
+  (brak `else` fallback).
+- Poprawka: `self.rockShape` + `else: pointlist = shapes[0]`.
+
+### W-5. `Ship.draw()` ma efekt uboczny (decrement `hyperSpaceTtl`)
+- `src/ship.py:54` — logika gry w metodzie rysowania; przy frame-advance w
+  pauzie (K_o) czy debugowaniu draw może być wywołany więcej/mniej razy niż
+  ticki.
+- Poprawka: przenieś TTL do `Ship.move()` albo do `Asteroids.playing()`.
+
+### W-6. `Saucer.move` — `heading.y = heading.x` w środkowym pasie
+- `src/badies.py:148-151` — saucer w pasie 33-66% szerokości leci diagonalnie
+  w DOŁ w pełnej prędkości x; po opuszczeniu pasa `heading.y = 0` i saucer
+  nigdy nie wraca do góry — tor jest asymetryczny (w oryginale saucer leciał
+  prosto, a celował).
+- Poprawka: prosta trajektoria pozioma + oddzielny timer strzałów (np. co 30-60
+  klatek), a nie `fireBullet()` co klatkę.
+
+### W-7. Brak strefy bezpiecznej po śmierci (TODO z kodu)
+- `src/asteroids.py:21` — "safe area on new life". W oryginale statek miał
+  3 s bezkolizyjności po respawnie i saucer nie atakował w strefie startu.
+- Poprawka: `self.respawnTimer = 180`; w `checkCollisions` pomijaj kolizje
+  statku gdy `respawnTimer > 0`; saucer celuje tylko gdy timer == 0.
+
+### W-8. `lives` nie jest resetowane w `initialiseGame`
+- `src/asteroids.py:62-77` — `createLivesList` robi `self.lives += 1` do
+  STAREJ wartości. Dziś działa, bo gra wraca do attract_mode tylko przy
+  lives == 0, ale każdy przyszły tryb (np. restart w trakcie gry, demo
+  restart po timeoucie) da drift życia.
+- Poprawka: `self.lives = 0` na początku `initialiseGame`.
+
+### W-9. `Debris` — kolizje z niczym, ale TTL=50 klatek, fade 5/frame
+- `src/badies.py:100-108` — OK, ale `r,g,b = self.color` + `r -= 5` bez
+  `max(0, ...)` — przy zmianie TTL w przyszłości kolor pójdzie w ujemne
+  wartości i `aalines` dostanie tuple z ujemnym bajtem.
+- Poprawka: `self.color = (max(0, r), max(0, g), max(0, b))`.
+
+### W-10. `Bullet.move` — `shooter.bullets.remove(self)` może rzucić ValueError
+- `src/shooter.py:60-63` — `Point.move` już usunął bullet ze `stage.spriteList`
+  gdy ttl<=0; jeśli gdzieś w przyszłości bullet trafi też do
+  `shooter.bullets` dwa razy (np. shared bullet), `remove` kruszy.
+- Poprawka: `if self in self.shooter.bullets: self.shooter.bullets.remove(self)`.
+
+---
+
+## Średnie (jakość / wydajność)
+
+### M-1. Font renderowany co klatkę w `displayText` / `displayScore` / `displayPaused` / `displayFps`
+- `src/asteroids.py:203-206, 227, 235, 405` — `pygame.font.Font(...).render(...)`
+  co klatkę. Przy 60 FPS to 4 rendery fontu na klatkę.
+- Poprawka: zainicjalizuj fonty i SURFACE tekstów w `__init__` / `Stage`,
+  blituj gotowy Surface.
+
+### M-2. `Stage.addSprite` wywołuje `sprite.draw()` (efekt uboczny)
+- `src/stage.py:50-51` — `draw()` modyfikuje `transformedPointlist`;
+  jeśli ktoś wywoła `addSprite` w niewłaściwej chwili, transformacja
+  będzie na starej pozycji.
+- Poprawka: `boundingRect = pygame.Rect(...)` z `pointlist` bez `draw()`,
+  albo jawnie `sprite.rotateAndTransform()` w `addSprite`.
+
+### M-3. `Rock.collidesWith` + `checkPolygonCollision` — podwójny koszt
+- `src/asteroids.py:310-313` — najpierw `collidesWith` (rect), potem
+  `checkPolygonCollision` (line-line). OK, ale `checkPolygonCollision`
+  iteruje po WSZYSTKICH parach odcinków (O(n*m)), a skal ma 10-13 punktów.
+- Poprawka:.spatial hash albo przynajmniej `if not collidesWith: continue`
+  (już jest), ale dodatkowo `transformedPointlist` może być stale gdy draw
+  nie został wywołany w tej klatce (attract mode).
+
+### M-4. `Saucer` — `maxBullets = 1` na klasę, ale `bulletTtl = [60, 90]`
+- `src/badies.py:122-123` — `maxBullets` jako klasowy atrybut = 1 dla OBU
+  typów; `bulletTtl` jako lista indeksowana przez `saucerType`. OK, ale
+  `maxBullets` powinien być instancyjny, żeby saucer mógł strzelić 2 razy
+  bez czekania na expiry.
+
+### M-5. `ThrustJet` — `self.ship` nie jest zresetowany przy `createNewShip`
+- `src/ship.py:161-174` — `ThrustJet` trzyma referencję do `ship`; gdy
+  `createNewShip` tworzy nowy statek, stary `thrustJet` jest usuwany ze
+  stage, ale jeśli ktoś go reużyje (np. respawn), `ship` wskazuje na STARY
+  statek.
+- Poprawka: `ThrustJet.__init__` bez `ship`, albo `thrustJet.ship = newShip`
+  w `createNewShip`.
+
+### M-6. `Vector2d` — brak operatorów, brak `__eq__`, brak `__repr__`
+- `src/util/vector2d.py:20-26` — kom Komentarz "needs a copy constructor".
+  Bez operatorów każda operacja wektorowa to 4 linijki.
+- Poprawka: `__add__`, `__sub__`, `__mul__`, `__eq__`, `__repr__`, `magnitude()`.
+
+### M-7. `geometry.py` — `assert false` (lowercase) + `assert` w produkcyjnym kodzie
+- `src/util/geometry.py:83` — `assert false` = `assert 0`; w Pythonie
+  `False` (uppercase) ale i tak: `assert` w produkcyjnym kodzie jest
+  wyłączane przy `-O`.
+- Poprawka: `raise AssertionError("both lines vertical — impossible")`
+  albo `# unreachable` komentarz.
+
+### M-8. `geometry.py` — `str = "point was invalid  ", point` zasłania built-in
+- `src/util/geometry.py:152` — `str` to built-in; po tej linii `str(...)`
+  w tym作用 scope nie działa.
+- Poprawka: `print(f"point was invalid: {point}")` albo `logging.warning`.
+
+### M-9. `geometry.py` — bare `except:`
+- `src/util/geometry.py:150` — łapie WSZYSTKO łącznie z `KeyboardInterrupt`
+  i `SystemExit`.
+- Poprawka: `except (ValueError, OverflowError):`.
+
+### M-10. ~~`soundManager.py` — `channel = sounds[...].play()` bez użycia~~ ✅
+- Zamknięte razem z K-5 (2026-11-04): `channel` nie jest już przypisywane;
+  funkcje grają tylko gdy `sound_available`.
+
+### M-11. `asteroids.py` — `frameCount` jako float, `frameCount % 10` na floatach
+- `src/asteroids.py:115, 123-129` — działa, ale `frameCount` jest intem
+  po co? float modulo int = float; `round(...)` OK.
+- Poprawka: `frameCount = 0` (int).
+
+### M-12. `ship.py` — `decelaration` (literówka)
+- `src/ship.py:30` — `decelaration` zamiast `deceleration`.
+- Poprawka: rename + aktualizacja użycia.
+
+### M-13. `stage.py` — `if dimensions == None`
+- `src/stage.py:32` — PEP 8: `is None`.
+- Poprawka: `if dimensions is None:`.
+
+### M-14. ~~Brak `requirements.txt` / `pyproject.toml`~~ ✅
+- Zrealizowane: `requirements.txt` z `pygame-ce>=2.5.0`, `.venv/` w `.gitignore`.
+- Sposób użycia: `python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt`
+
+### M-15. Brak testów
+- `src/util/geometry.py` ma self-test w `__main__`, ale reszta kodu
+  nie ma żadnych testów.
+- Poprawka: `pytest` + `test_geometry.py`, `test_vector2d.py`,
+  `test_ship.py` (kolizje, thrust, hyperSpace TTL).
+
+---
+
+## Niskie (cosmetic / przyszłość)
+
+### N-1. `readme.md` — "python asteroids.py" bez wskazania katalogu
+- Poprawka: `cd src && python asteroids.py` albo `python src/asteroids.py`
+  (po fixie K-1).
+
+### N-2. `readme.md` — "moode" (literówka)
+- `src/readme.md` — "full screen moode" → "mode".
+
+### N-3. `asteroids.py` — `# move this kack somewhere else!`
+- `src/asteroids.py:202` — "kack" → "hack"; albo po prostu przenieść
+  `displayText` do osobnego modułu.
+
+### N-4. `badies.py` — nazwa pliku (typos: "baddies"?)
+- "badies" = "bad guys"? Czytaj: baddies. Poprawka: rename na
+  `enemies.py` albo `badies.py` → `baddies.py` + aktualizacja importów.
+
+### N-5. Brak `.gitignore` dla `__pycache__` / `.pyc`
+- `.gitignore` istnieje, ale sprawdź czy ma `__pycache__/` i `*.pyc`.
+
+### N-6. Brak CI
+- Poprawka: GitHub Actions + `pytest` + headless smoke-test
+  (`SDL_VIDEODRIVER=dummy timeout 5 python3 src/asteroids.py`).
+
+### N-7. Brak `pyproject.toml` / package structure
+- `src/` nie jest package'em (brak `setup.py` / `pyproject.toml`),
+  importy są `from ship import *` — działa tylko gdy CWD=`src/`.
+- Po fixie K-1 warto rozważyć `pip install -e .` albo `PYTHONPATH=src`.
+
+---
+
+## Priorytet napraw (proponowany kolejność)
+
+1. ~~**K-1** (ścieżki)~~ — ✅ naprawione (2026-11-04).
+2. ~~**K-5** (crash audio EPERM)~~ — ✅ naprawione w kodzie (fallback, 2026-11-04);
+   diagnostyka audio u użytkownika nadal otwarta (grupa `audio`, PipeWire).
+3. ~~**K-2** (ZeroDivision)~~ — ✅ naprawione (2026-11-04).
+4. **K-3** (pygame.quit) — czyste wyjście.
+5. **K-4** (fullscreen) — UX.
+6. **W-3** (saucer w pętli) — latencja/mina logiczna.
+7. **W-7** (safe area) — gameplay, TODO z kodu.
+8. **M-15** (testy) — ochrona przed regresjami.
+9. ~~**M-14** (requirements.txt)~~ — ✅ naprawione (2026-11-04).
+10. Reszta W/M — przy okazji.

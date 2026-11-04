@@ -165,6 +165,10 @@ class Saucer(Shooter):
             dx = self.ship.position.x - self.position.x
             dy = self.ship.position.y - self.position.y
             mag = math.sqrt(dx*dx + dy*dy);
+            if mag < 1e-6:
+                # Ship is sitting exactly on the saucer — no direction to aim,
+                # skip this frame (move() calls fireBullet every frame anyway).
+                return
             heading = Vector2d(self.bulletVelocity * (dx/mag), self.bulletVelocity * (dy/mag))
             position = Vector2d(self.position.x, self.position.y)          
             shotFired = Shooter.fireBullet(self, heading, self.bulletTtl[self.saucerType], self.bulletVelocity)

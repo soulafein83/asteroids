@@ -39,6 +39,11 @@ from stage import *
 from badies import *
 from shooter import *
 from soundManager import *
+from util import RES_DIR
+
+# Font path, resolved relative to this file so the game can be launched
+# from any directory.
+FONT_PATH = os.path.join(RES_DIR, "Hyperspace.otf")
 
 
 class Asteroids():
@@ -201,9 +206,9 @@ class Asteroids():
 
     # move this kack somewhere else!
     def displayText(self):
-        font1 = pygame.font.Font('../res/Hyperspace.otf', 50)
-        font2 = pygame.font.Font('../res/Hyperspace.otf', 20)
-        font3 = pygame.font.Font('../res/Hyperspace.otf', 30)
+        font1 = pygame.font.Font(FONT_PATH, 50)
+        font2 = pygame.font.Font(FONT_PATH, 20)
+        font3 = pygame.font.Font(FONT_PATH, 30)
 
         titleText = font1.render('Asteroids', True, (180, 180, 180))
         titleTextRect = titleText.get_rect(centerx=self.stage.width/2)
@@ -224,7 +229,7 @@ class Asteroids():
         self.stage.screen.blit(instructionText, instructionTextRect)
 
     def displayScore(self):
-        font1 = pygame.font.Font('../res/Hyperspace.otf', 30)
+        font1 = pygame.font.Font(FONT_PATH, 30)
         scoreStr = str("%02d" % self.score)
         scoreText = font1.render(scoreStr, True, (200, 200, 200))
         scoreTextRect = scoreText.get_rect(centerx=100, centery=45)
@@ -232,7 +237,7 @@ class Asteroids():
 
     def displayPaused(self):
         if self.paused:
-            font1 = pygame.font.Font('../res/Hyperspace.otf', 30)
+            font1 = pygame.font.Font(FONT_PATH, 30)
             pausedText = font1.render("Paused", True, (255, 255, 255))
             textRect = pausedText.get_rect(
                 centerx=self.stage.width/2, centery=self.stage.height/2)
@@ -402,7 +407,7 @@ class Asteroids():
             self.stage.addSprite(debris)
 
     def displayFps(self):
-        font2 = pygame.font.Font('../res/Hyperspace.otf', 15)
+        font2 = pygame.font.Font(FONT_PATH, 15)
         fpsStr = str(self.fps)+(' FPS')
         scoreText = font2.render(fpsStr, True, (255, 255, 255))
         scoreTextRect = scoreText.get_rect(
