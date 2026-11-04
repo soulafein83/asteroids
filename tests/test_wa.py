@@ -1,5 +1,4 @@
 """Tests for the W-A patch: score display (W-1), lives handling (W-2, W-8)."""
-import pygame
 
 import asteroids
 from asteroids import Asteroids
@@ -30,30 +29,27 @@ def test_extra_lives_stay_on_screen(game):
     assert not bad, "off-screen life ships: %s" % bad[:5]
 
 
-def test_score_display_padding(game, monkeypatch):
+def test_score_display_padding(game):
     # W-1: the score is zero-padded to 4 digits and capped at 99999.
-    # Font is an immutable C type, so wrap the factory instead of the class.
+    # M-E: displayScore renders through the cached font, so spy on that
+    # font's render instead of the Font factory.
     captured = []
-    orig_Font = pygame.font.Font
+    orig_font = game.fonts[30]
 
     class SpyFont:
-        def __init__(self, path, size):
-            self._f = orig_Font(path, size)
-
         def render(self, text, *a, **k):
             captured.append(text)
-            return self._f.render(text, *a, **k)
+            return orig_font.render(text, *a, **k)
 
-        def __getattr__(self, name):
-            return getattr(self._f, name)
-
-    monkeypatch.setattr(pygame.font, "Font", SpyFont)
-
-    for score in (0, 7, 123, 4200, 99999, 250000):
-        game.score = score
-        captured.clear()
-        game.displayScore()
-        got = [t for t in captured if t.isdigit()]
-        assert got, "displayScore rendered no numeric text"
-        exp = "%04d" % min(score, 99999)
-        assert got[0] == exp, "score %d -> %r, expected %r" % (score, got[0], exp)
+    game.fonts[30] = SpyFont()
+    try:
+        for score in (0, 7, 123, 4200, 99999, 250000):
+            game.score = score
+            captured.clear()
+            game.displayScore()
+            got = [t for t in captured if t.isdigit()]
+            assert got, "displayScore rendered no numeric text"
+            exp = "%04d" % min(score, 99999)
+            assert got[0] == exp, "score %d -> %r, expected %r" % (score, got[0], exp)
+    finally:
+        game.fonts[30] = orig_font

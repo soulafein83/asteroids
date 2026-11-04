@@ -52,6 +52,22 @@ class Asteroids():
 
     def __init__(self):
         self.stage = Stage('Atari Asteroids', (1024, 768))
+        # M-1: build fonts and static text surfaces ONCE (they used to
+        # be re-rendered on every frame); display methods blit these.
+        self.fonts = {
+            15: pygame.font.Font(FONT_PATH, 15),
+            20: pygame.font.Font(FONT_PATH, 20),
+            30: pygame.font.Font(FONT_PATH, 30),
+            50: pygame.font.Font(FONT_PATH, 50),
+        }
+        self.titleSurface = self.fonts[50].render(
+            'Asteroids', True, (180, 180, 180))
+        self.copyrightSurface = self.fonts[20].render(
+            '(C) 1979 Atari INC.', True, (255, 255, 255))
+        self.instructionSurface = self.fonts[30].render(
+            'Press start to Play', True, (200, 200, 200))
+        self.pausedSurface = self.fonts[30].render(
+            "Paused", True, (255, 255, 255))
         self.paused = False
         self.showingFPS = False
         self.frameAdvance = False
@@ -216,43 +232,34 @@ class Asteroids():
 
     # move this kack somewhere else!
     def displayText(self):
-        font1 = pygame.font.Font(FONT_PATH, 50)
-        font2 = pygame.font.Font(FONT_PATH, 20)
-        font3 = pygame.font.Font(FONT_PATH, 30)
-
-        titleText = font1.render('Asteroids', True, (180, 180, 180))
-        titleTextRect = titleText.get_rect(centerx=self.stage.width/2)
+        # M-1: static texts are pre-rendered surfaces, blitted per frame.
+        titleTextRect = self.titleSurface.get_rect(centerx=self.stage.width/2)
         titleTextRect.y = self.stage.height/2 - titleTextRect.height*2
-        self.stage.screen.blit(titleText, titleTextRect)
+        self.stage.screen.blit(self.titleSurface, titleTextRect)
 
-        keysText = font2.render(
-            '(C) 1979 Atari INC.', True, (255, 255, 255))
-        keysTextRect = keysText.get_rect(centerx=self.stage.width/2)
+        keysTextRect = self.copyrightSurface.get_rect(centerx=self.stage.width/2)
         keysTextRect.y = self.stage.height - keysTextRect.height - 20
-        self.stage.screen.blit(keysText, keysTextRect)
+        self.stage.screen.blit(self.copyrightSurface, keysTextRect)
 
-        instructionText = font3.render(
-            'Press start to Play', True, (200, 200, 200))
-        instructionTextRect = instructionText.get_rect(
+        instructionTextRect = self.instructionSurface.get_rect(
             centerx=self.stage.width/2)
         instructionTextRect.y = self.stage.height/2 - instructionTextRect.height
-        self.stage.screen.blit(instructionText, instructionTextRect)
+        self.stage.screen.blit(self.instructionSurface, instructionTextRect)
 
     def displayScore(self):
-        font1 = pygame.font.Font(FONT_PATH, 30)
+        # M-1: reuse the cached 30pt font (the text itself changes).
         # The arcade wrapped the score at 100 000; keep the display 5 digits.
         scoreStr = "%04d" % min(self.score, 99999)
-        scoreText = font1.render(scoreStr, True, (200, 200, 200))
+        scoreText = self.fonts[30].render(scoreStr, True, (200, 200, 200))
         scoreTextRect = scoreText.get_rect(centerx=100, centery=45)
         self.stage.screen.blit(scoreText, scoreTextRect)
 
     def displayPaused(self):
         if self.paused:
-            font1 = pygame.font.Font(FONT_PATH, 30)
-            pausedText = font1.render("Paused", True, (255, 255, 255))
-            textRect = pausedText.get_rect(
+            # M-1: the "Paused" text is a pre-rendered surface.
+            textRect = self.pausedSurface.get_rect(
                 centerx=self.stage.width/2, centery=self.stage.height/2)
-            self.stage.screen.blit(pausedText, textRect)
+            self.stage.screen.blit(self.pausedSurface, textRect)
             pygame.display.update()
 
     # Should move the ship controls into the ship class
@@ -424,9 +431,9 @@ class Asteroids():
             self.stage.addSprite(debris)
 
     def displayFps(self):
-        font2 = pygame.font.Font(FONT_PATH, 15)
+        # M-1: reuse the cached 15pt font (the value changes).
         fpsStr = str(self.fps)+(' FPS')
-        scoreText = font2.render(fpsStr, True, (255, 255, 255))
+        scoreText = self.fonts[15].render(fpsStr, True, (255, 255, 255))
         scoreTextRect = scoreText.get_rect(
             centerx=(self.stage.width/2), centery=15)
         self.stage.screen.blit(scoreText, scoreTextRect)

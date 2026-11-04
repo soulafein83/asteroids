@@ -29,13 +29,19 @@ def test_add_sprite_does_not_call_draw(game):
 
 
 def test_add_sprite_sets_fresh_bounding_rect(game):
+    # Use an explicitly symmetric pointlist: rock outlines are NOT
+    # origin-symmetric, so their point AABB centre can be off by a few
+    # pixels and a random shape would make this test flaky.
     rock = Rock(game.stage, Vector2d(50, 50), Rock.largeRockType)
+    rock.pointlist = [(-5, -5), (5, -5), (5, 5), (-5, 5)]
     game.stage.addSprite(rock)
     assert rock.boundingRect.width > 0
     assert rock.boundingRect.height > 0
-    # rect is centred on the sprite position (angle 0, integer shape)
-    assert abs(rock.boundingRect.centerx - 50) <= 1
-    assert abs(rock.boundingRect.centery - 50) <= 1
+    # angle 0 -> identity rotation, integer points -> exact centre
+    assert rock.boundingRect.centerx == 50
+    assert rock.boundingRect.centery == 50
+    assert rock.boundingRect.width == 10
+    assert rock.boundingRect.height == 10
 
 
 def test_check_polygon_collision_refreshes_stale_transforms(game):
