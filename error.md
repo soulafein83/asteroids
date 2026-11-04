@@ -362,32 +362,50 @@ z `src/` i z losowego CWD).
 
 ## Niskie (cosmetic / przyszłość)
 
-### N-1. `readme.md` — "python asteroids.py" bez wskazania katalogu
-- Poprawka: `cd src && python asteroids.py` albo `python src/asteroids.py`
-  (po fixie K-1).
+### N-1. ~~`readme.md` — "python asteroids.py" bez wskazania katalogu~~ ✅ NAPRAWIONE
+- **Poprawka (zrealizowana 2026-11-04, N-A `8c9d8d9`):** sekcja Play
+  mówi teraz wprost: `python3 src/asteroids.py` z katalogu projektu.
+- **Weryfikacja:** dokumentacja, bez zmian behawioralnych; suita 46
+  passed, smoke test zielony.
 
-### N-2. `readme.md` — "moode" (literówka)
-- `src/readme.md` — "full screen moode" → "mode".
+### N-2. ~~`readme.md` — "moode" (literówka)~~ ✅ NAPRAWIONE
+- **Poprawka (zrealizowana 2026-11-04, N-A `8c9d8d9`):**
+  "full screen moode" → "mode".
 
-### N-3. `asteroids.py` — `# move this kack somewhere else!`
-- `src/asteroids.py:202` — "kack" → "hack"; albo po prostu przenieść
-  `displayText` do osobnego modułu.
+### N-3. ~~`asteroids.py` — `# move this kack somewhere else!`~~ ✅ NAPRAWIONE
+- **Poprawka (zrealizowana 2026-11-04, N-A `8c9d8d9`):** "kack" →
+  "hack". (Przeniesienie `displayText` do osobnego modułu — opcja
+  alternatywna, nie zrealizowana; komentarz teraz bez literówki.)
 
-### N-4. `badies.py` — nazwa pliku (typos: "baddies"?)
-- "badies" = "bad guys"? Czytaj: baddies. Poprawka: rename na
-  `enemies.py` albo `badies.py` → `baddies.py` + aktualizacja importów.
+### N-4. ~~`badies.py` — nazwa pliku (typos: "baddies"?)~~ ✅ NAPRAWIONE
+- **Poprawka (zrealizowana 2026-11-04, N-B `ff32668`):** `git mv`
+  `src/badies.py` → `src/enemies.py` (czytelniejsza angielska nazwa
+  dla Rock/Debris/Saucer) + zaktualizowane importy w
+  `src/asteroids.py` i 4 plikach testów.
+- **Weryfikacja:** brak odniesień do "badies" w kodzie; 46 passed,
+  smoke test zielony.
 
-### N-5. Brak `.gitignore` dla `__pycache__` / `.pyc`
-- `.gitignore` istnieje, ale sprawdź czy ma `__pycache__/` i `*.pyc`.
+### N-5. ~~Brak `.gitignore` dla `__pycache__` / `.pyc`~~ ✅ NAPRAWIONE
+- **Poprawka (zrealizowana 2026-11-04, N-A `8c9d8d9`):** dwa
+  utwardzone ścieżki `src/__pycache__/` i `src/util/__pycache__/`
+  zastąpione ogólnym `__pycache__/` (pokrywa też `tests/` i root);
+  `*.pyc` zostaje.
 
-### N-6. Brak CI
-- Poprawka: GitHub Actions + `pytest` + headless smoke-test
-  (`SDL_VIDEODRIVER=dummy timeout 5 python3 src/asteroids.py`).
+### N-6. ~~Brak CI~~ ✅ NAPRAWIONE
+- Zrealizowane wcześniej w ramach M-15 (`.github/workflows/ci.yml`):
+  GitHub Actions, Python 3.12/3.13/3.14, `pytest` + headless smoke-test.
+- **Weryfikacja:** CI zielone (potwierdzone przez użytkownika).
 
-### N-7. Brak `pyproject.toml` / package structure
-- `src/` nie jest package'em (brak `setup.py` / `pyproject.toml`),
-  importy są `from ship import *` — działa tylko gdy CWD=`src/`.
-- Po fixie K-1 warto rozważyć `pip install -e .` albo `PYTHONPATH=src`.
+### N-7. ~~Brak `pyproject.toml` / package structure~~ ✅ NAPRAWIONE
+- **Poprawka (zrealizowana 2026-11-04, N-C `928cd19`):** dodano
+  `pyproject.toml` (metadata + setuptools); `package-dir {"" = "src"}`
+  + `py-modules` + `util` jako package, więc `pip install -e .`
+  odsłania moduły jako top-level importy z dowolnego katalogu.
+  `python3 src/asteroids.py` (stary tryb) i `python -m asteroids`
+  (nowy) obu działają.
+- **Weryfikacja:** świeży venv — editable install OK, importy z
+  `/tmp` OK, gra headless przez `python -m asteroids` OK; 46 passed,
+  smoke test zielony.
 
 ---
 
@@ -407,4 +425,5 @@ z `src/` i z losowego CWD).
 11. ~~**W-3, W-7, W-10**~~ — ✅ naprawione (2026-11-04, plaster W-B).
 12. ~~**W-4, W-6, W-9**~~ — ✅ naprawione (2026-11-04, plaster W-C).
 13. ~~**W-5**~~ — ✅ naprawione (2026-11-04, plaster W-D). Blok W zamknięty.
-14. Reszta M — przy okazji.
+14. ~~**Reszta M**~~ — ✅ naprawione (2026-11-04, plasterki M-A…M-E). Blok M zamknięty.
+15. ~~**N-1…N-7**~~ — ✅ naprawione (2026-11-04, plasterki N-A…N-C). Blok N zamknięty.
