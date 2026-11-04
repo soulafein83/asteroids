@@ -213,20 +213,33 @@ z `src/` i z losowego CWD).
 - Poprawka: zainicjalizuj fonty i SURFACE tekstów w `__init__` / `Stage`,
   blituj gotowy Surface.
 
-### M-2. `Stage.addSprite` wywołuje `sprite.draw()` (efekt uboczny)
+### M-2. ~~`Stage.addSprite` wywołuje `sprite.draw()` (efekt uboczny)~~ ✅ NAPRAWIONE
 - `src/stage.py:50-51` — `draw()` modyfikuje `transformedPointlist`;
   jeśli ktoś wywoła `addSprite` w niewłaściwej chwili, transformacja
-  będzie na starej pozycji.
-- Poprawka: `boundingRect = pygame.Rect(...)` z `pointlist` bez `draw()`,
-  albo jawnie `sprite.rotateAndTransform()` w `addSprite`.
+  będzie na starej pozycji. Do tego `draw()` renderował sprite na
+  ekran w momencie dodania (efekt uboczny).
+- **Poprawka (zrealizowana 2026-11-04, M-D `80e3381`):** `addSprite`
+  robi `sprite.rotateAndTransform()` i buduje `boundingRect` jako
+  ściśle punktowy AABB z `transformedPointlist` — zero efektu
+  renderowania; pierwszy `drawSprites()` rysuje normalnie. Jedyna
+  różnica: rect ±1 px względem bbox z `aalines` (akceptowalne).
+- **Weryfikacja:** testy `tests/test_md.py` — `addSprite` nie
+  wywołuje `draw()` (spy) i rect jest wycentrowany na pozycji
+  sprite'a; suita 42 passed, smoke test zielony.
 
-### M-3. `Rock.collidesWith` + `checkPolygonCollision` — podwójny koszt
+### M-3. ~~`Rock.collidesWith` + `checkPolygonCollision` — podwójny koszt~~ ✅ NAPRAWIONE
 - `src/asteroids.py:310-313` — najpierw `collidesWith` (rect), potem
   `checkPolygonCollision` (line-line). OK, ale `checkPolygonCollision`
   iteruje po WSZYSTKICH parach odcinków (O(n*m)), a skal ma 10-13 punktów.
-- Poprawka:.spatial hash albo przynajmniej `if not collidesWith: continue`
-  (już jest), ale dodatkowo `transformedPointlist` może być stale gdy draw
-  nie został wywołany w tej klatce (attract mode).
+- **Poprawka (zrealizowana 2026-11-04, M-D `80e3381`):**
+  `checkPolygonCollision` odświeża `transformedPointlist` OBU sprite'ów
+  przed pętlą — stale lista punktów (sprite przesunięty po ostatnim
+  draw, np. attract mode) nie może już ukryć kolizji. Pre-check
+  rect (`collidesWith`) zostaje i filtruje większość par; koszt
+  O(n*m) zachowany, spatial hash poza scope cienkiego plastru.
+- **Weryfikacja:** test `tests/test_md.py` — dwie identyczne skały
+  przesunięte bez draw (stare listy 500 px dalej) są wykrywane jako
+  kolizja; suita 42 passed, smoke test zielony.
 
 ### M-4. ~~`Saucer` — `maxBullets = 1` na klasę, ale `bulletTtl = [60, 90]`~~ ✅ NAPRAWIONE
 - `src/badies.py:122-123` — `maxBullets` jako klasowy atrybut = 1 dla OBU
