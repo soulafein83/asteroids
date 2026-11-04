@@ -284,11 +284,16 @@ z `src/` i z losowego CWD).
 - Zrealizowane: `requirements.txt` z `pygame-ce>=2.5.0`, `.venv/` w `.gitignore`.
 - Sposób użycia: `python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt`
 
-### M-15. Brak testów
+### M-15. ~~Brak testów~~ ✅ NAPRAWIONE
 - `src/util/geometry.py` ma self-test w `__main__`, ale reszta kodu
   nie ma żadnych testów.
-- Poprawka: `pytest` + `test_geometry.py`, `test_vector2d.py`,
-  `test_ship.py` (kolizje, thrust, hyperSpace TTL).
+- **Poprawka (zrealizowana 2026-11-04):** suita `pytest` w `tests/`
+  (headless, `game` fixture na świeży stan gry na test) + workflow
+  GitHub Actions `ci.yml` (Python 3.12/3.13/3.14) + `pytest.ini` i
+  `requirements-dev.txt` (pytest>=8). Pokrywa wszystkie poprawki
+  W-1…W-10 (plastery W-A…W-D).
+- **Weryfikacja:** `python3 -m pytest -q` → 19 passed (wa=4, wb=5,
+  wc=5, wd=5); CI uruchamiane na push/PR.
 
 ---
 
@@ -333,7 +338,7 @@ z `src/` i z losowego CWD).
 5. ~~**K-4** (fullscreen)~~ — ✅ naprawione (2026-11-04, windowed domyślnie).
 6. ~~**W-3** (saucer w pętli)~~ — ✅ naprawione (2026-11-04, plaster W-B).
 7. ~~**W-7** (safe area)~~ — ✅ naprawione (2026-11-04, plaster W-B).
-8. **M-15** (testy) — ochrona przed regresjami.
+8. ~~**M-15** (testy)~~ — ✅ naprawione (2026-11-04, suita pytest + CI).
 9. ~~**M-14** (requirements.txt)~~ — ✅ naprawione (2026-11-04).
 10. ~~**W-1, W-2, W-8**~~ — ✅ naprawione (2026-11-04, plaster W-A).
 11. ~~**W-3, W-7, W-10**~~ — ✅ naprawione (2026-11-04, plaster W-B).
