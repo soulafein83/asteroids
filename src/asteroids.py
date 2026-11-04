@@ -30,7 +30,6 @@
 
 import pygame
 import sys
-import os
 import random
 from pygame.locals import *
 from util.vectorsprites import *
@@ -39,11 +38,7 @@ from stage import *
 from enemies import *
 from shooter import *
 from soundManager import *
-from util import RES_DIR
-
-# Font path, resolved relative to this file so the game can be launched
-# from any directory.
-FONT_PATH = os.path.join(RES_DIR, "Hyperspace.otf")
+from util import FONT_PATH
 
 
 class Asteroids():

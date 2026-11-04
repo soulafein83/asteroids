@@ -24,6 +24,7 @@ package-dir = { "" = "src" }
 py-modules = [
     "asteroids",
     "enemies",
+    "item",
     "ship",
     "shooter",
     "soundManager",

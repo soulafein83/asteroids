@@ -6,3 +6,4 @@ import os
 BASE_DIR = os.path.dirname(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 RES_DIR = os.path.join(BASE_DIR, "res")
+FONT_PATH = os.path.join(RES_DIR, "Hyperspace.otf")
