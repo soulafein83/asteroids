@@ -54,20 +54,22 @@ z `src/` i z losowego CWD).
   wyjątku, bez kuli; statek z odchytem: kula utworzona z poprawnym
   kierunkiem. Smoke-test gry przechodzi.
 
-### K-3. Brak `pygame.quit()` / `sys.exit` bez sprzątania
+### K-3. ~~Brak `pygame.quit()` / `sys.exit` bez sprzątania~~ ✅ NAPRAWIONE
 - `src/asteroids.py:247, 250` — `sys.exit(0)` przy QUIT/ESC bez `pygame.quit()`.
-- Poprawka:
-  ```python
-  if event.type == QUIT:
-      pygame.quit(); sys.exit(0)
-  ```
+- **Poprawka (zrealizowana 2026-11-04):** obie ścieżki (QUIT i ESC)
+  wywołują teraz `pygame.quit()` przed `sys.exit(0)`.
+- **Weryfikacja:** `py_compile` OK, smoke-test gry przechodzi.
 
-### K-4. `Stage` startuje WYŁĄCZNIE w fullscreenie
+### K-4. ~~`Stage` startuje WYŁĄCZNIE w fullscreenie~~ ✅ NAPRAWIONE
 - `src/stage.py:35` — `pygame.display.set_mode(dimensions, FULLSCREEN)`.
-  Linia 38 (windowed) jest zakomentowana. `K_f` przełącza, ale start w FS
+  Linia 38 (windowed) była zakomentowana. `K_f` przełącza, ale start w FS
   na systemach multi-monitor potrafi zająć nieprawidłowy monitor.
-- Poprawka: windowed domyślnie, FS przez flagę/klawisz; opcjonalnie
-  `pygame.display.set_mode((1024, 768))`.
+- **Poprawka (zrealizowana 2026-11-04):** `Stage.__init__` dostał parametr
+  `fullscreen=False`; domyślnie okno 1024×768, `K_f` (toggle_fullscreen)
+  nadal przełącza. Mysz ukrywana tylko w fullscreenie.
+- **Weryfikacja:** test jednostkowy — domyślne `set_mode` dostaje flagi `0`
+  (windowed), `fullscreen=True` dostaje `FULLSCREEN`; smoke-test gry przechodzi.
+- (Przy okazji zamknięto M-13: `== None` → `is None`.)
 
 ### K-5. ~~Crash przy braku dostępu do audio (EPERM)~~ ✅ NAPRAWIONE
 - Odkryte 2026-11-04 u użytkownika (CachyOS, PipeWire): `pygame.mixer.init()`
@@ -232,9 +234,8 @@ z `src/` i z losowego CWD).
 - `src/ship.py:30` — `decelaration` zamiast `deceleration`.
 - Poprawka: rename + aktualizacja użycia.
 
-### M-13. `stage.py` — `if dimensions == None`
-- `src/stage.py:32` — PEP 8: `is None`.
-- Poprawka: `if dimensions is None:`.
+### M-13. ~~`stage.py` — `if dimensions == None`~~ ✅
+- Zamknięte przy K-4 (2026-11-04): `if dimensions is None:`.
 
 ### M-14. ~~Brak `requirements.txt` / `pyproject.toml`~~ ✅
 - Zrealizowane: `requirements.txt` z `pygame-ce>=2.5.0`, `.venv/` w `.gitignore`.
@@ -285,8 +286,8 @@ z `src/` i z losowego CWD).
 2. ~~**K-5** (crash audio EPERM)~~ — ✅ naprawione w kodzie (fallback, 2026-11-04);
    diagnostyka audio u użytkownika nadal otwarta (grupa `audio`, PipeWire).
 3. ~~**K-2** (ZeroDivision)~~ — ✅ naprawione (2026-11-04).
-4. **K-3** (pygame.quit) — czyste wyjście.
-5. **K-4** (fullscreen) — UX.
+4. ~~**K-3** (pygame.quit)~~ — ✅ naprawione (2026-11-04).
+5. ~~**K-4** (fullscreen)~~ — ✅ naprawione (2026-11-04, windowed domyślnie).
 6. **W-3** (saucer w pętli) — latencja/mina logiczna.
 7. **W-7** (safe area) — gameplay, TODO z kodu.
 8. **M-15** (testy) — ochrona przed regresjami.

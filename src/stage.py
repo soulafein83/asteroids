@@ -25,17 +25,17 @@ from pygame.locals import *
 class Stage:
 
     # Set up the PyGame surface
-    def __init__(self, caption, dimensions=None):
+    def __init__(self, caption, dimensions=None, fullscreen=False):
         pygame.init()
 
         # If no screen size is provided pick the first available mode
-        if dimensions == None:
+        if dimensions is None:
             dimensions = pygame.display.list_modes()[0]
 
-        pygame.display.set_mode(dimensions, FULLSCREEN)
-        pygame.mouse.set_visible(False)
-
-        # pygame.display.set_mode(dimensions)
+        # Windowed by default; pass fullscreen=True (or use the F key at
+        # runtime) for fullscreen.
+        pygame.display.set_mode(dimensions, FULLSCREEN if fullscreen else 0)
+        pygame.mouse.set_visible(not fullscreen)
 
         pygame.display.set_caption(caption)
         self.screen = pygame.display.get_surface()
