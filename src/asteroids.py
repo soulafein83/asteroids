@@ -230,7 +230,7 @@ class Asteroids():
         self.numRocks += 1
         self.createRocks(self.numRocks)
 
-    # move this kack somewhere else!
+    # move this hack somewhere else!
     def displayText(self):
         # M-1: static texts are pre-rendered surfaces, blitted per frame.
         titleTextRect = self.titleSurface.get_rect(centerx=self.stage.width/2)

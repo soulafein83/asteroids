@@ -8,9 +8,9 @@ Atari Asteroids arcade game of 1978. Turn down the lights, turn up the volume an
 > Ported to Python 3 by Francisco Sanchez Arroyo. Based on the original work *Pythentic Asteroids* by Nick Redshaw
 
 ## Play
-`python asteroids.py`   
-or   
-`python3 asteroids.py`
+From the project root:
+
+`python3 src/asteroids.py`
 
 ## Keys
 * `Z` `X` or `Cursor Left Right` rotate
@@ -20,7 +20,7 @@ or
 * `Enter` start 
 * `P` pause 
 * `O` frame advance whilst paused 
-* `F` toggle full screen moode 
+* `F` toggle full screen mode 
 * `J` toggle show FPS
 
 ## Features 
