@@ -42,6 +42,9 @@ class Ship(Shooter):
         self.shipDebrisList = []
         self.visible = True
         self.inHyperSpace = False
+        # Respawn safe zone: freshly created ships are invulnerable
+        # for this many frames (TODO in the original code).
+        self.respawnTimer = 180
         pointlist = [(0, -10), (6, 10), (3, 7), (-3, 7), (-6, 10)]
 
         Shooter.__init__(self, position, heading, pointlist, stage)
@@ -96,6 +99,8 @@ class Ship(Shooter):
         self.thrustJet.heading.y += dy
 
     def move(self):
+        if self.respawnTimer > 0:
+            self.respawnTimer -= 1
         VectorSprite.move(self)
         self.decreaseThrust()
 

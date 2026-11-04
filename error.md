@@ -110,13 +110,18 @@ z `src/` i z losowego CWD).
   `max(1, width // rectWidth)` — sloty cyklu się zamiast uciekać w lewo.
 - **Weryfikacja:** test — 203 żyć, x w zakresie 13–1014, zero poza ekranem.
 
-### W-3. `checkCollisions` — saucer oceniany w pętli po każdej skale
+### W-3. ~~`checkCollisions` — saucer oceniany w pętli po każdej skale~~ ✅ NAPRAWIONE
 - `src/asteroids.py:316-327` — blok saucera siedzi WĄTRZE pętli `for rock`,
   więc logika saucera jest sprawdzana N razy na rundę (N = liczba skal).
   Dziś działa "przypadkiem" (bullet ttl=0 po pierwszym trafieniu), ale to
   mina — np. score +500 mógłby zostać doliczony N-krotnie, gdyby `bulletCollision`
   nie zerwał ttl.
-- Poprawka: przenieść blok saucera za pętlę po skalach (linia ~357).
+- **Poprawka (zrealizowana 2026-11-04):** blok saucera przeniesiony za pętlę
+  po skalach; `ship.bulletCollision(saucer)` + score wykonywane 1×/klatkę;
+  trafienia saucera w statek (body i bullets) dodatkowo za bramką safe zone.
+- **Weryfikacja:** test — statek (300,400) strzela w saucer (400,400);
+  po 8 `bullet.move()` + `checkCollisions` → saucer zniszczony, score == 500
+  dokładnie raz.
 
 ### W-4. `Rock` — klasowe `rockShape` mutowane w `createPointList`
 - `src/badies.py:37, 78-80` — stan globalny (klasy) zamiast instancyjnego;
@@ -139,11 +144,18 @@ z `src/` i z losowego CWD).
 - Poprawka: prosta trajektoria pozioma + oddzielny timer strzałów (np. co 30-60
   klatek), a nie `fireBullet()` co klatkę.
 
-### W-7. Brak strefy bezpiecznej po śmierci (TODO z kodu)
+### W-7. ~~Brak strefy bezpiecznej po śmierci (TODO z kodu)~~ ✅ NAPRAWIONE
 - `src/asteroids.py:21` — "safe area on new life". W oryginale statek miał
   3 s bezkolizyjności po respawnie i saucer nie atakował w strefie startu.
-- Poprawka: `self.respawnTimer = 180`; w `checkCollisions` pomijaj kolizje
-  statku gdy `respawnTimer > 0`; saucer celuje tylko gdy timer == 0.
+- **Poprawka (zrealizowana 2026-11-04):** `Ship.respawnTimer = 180` w `__init__`,
+  decrement w `Ship.move()`; `checkCollisions` brankuje kolizje skal i saucera
+  z statkiem przez `safe = ship.respawnTimer > 0` (strzelanie w saucer nadal
+  działa w safe zone). Timer strzałów saucera (W-6) zostanie dodatkowo
+  zbrankowany w W-C.
+- **Weryfikacja:** test — skała przecinająca kontur statku: przy timerze >0
+  statek żyje (state=playing, lives=5), po timerze=0 ginie
+  (state=exploding, lives=4); timer 180→0 dokładnie po 180 `move()`, bez
+  wartości ujemnych.
 
 ### W-8. ~~`lives` nie jest resetowane w `initialiseGame`~~ ✅ NAPRAWIONE
 - `src/asteroids.py:62-77` — `createLivesList` robi `self.lives += 1` do
@@ -161,11 +173,13 @@ z `src/` i z losowego CWD).
   wartości i `aalines` dostanie tuple z ujemnym bajtem.
 - Poprawka: `self.color = (max(0, r), max(0, g), max(0, b))`.
 
-### W-10. `Bullet.move` — `shooter.bullets.remove(self)` może rzucić ValueError
+### W-10. ~~`Bullet.move` — `shooter.bullets.remove(self)` może rzucić ValueError~~ ✅ NAPRAWIONE
 - `src/shooter.py:60-63` — `Point.move` już usunął bullet ze `stage.spriteList`
   gdy ttl<=0; jeśli gdzieś w przyszłości bullet trafi też do
   `shooter.bullets` dwa razy (np. shared bullet), `remove` kruszy.
-- Poprawka: `if self in self.shooter.bullets: self.shooter.bullets.remove(self)`.
+- **Poprawka (zrealizowana 2026-11-04):** `if self in self.shooter.bullets: ...remove(self)`.
+- **Weryfikacja:** test — bullet z ttl=0 NIE będący w `shooter.bullets` →
+  `move()` bez ValueError; bullet w liście → czyste usunięcie.
 
 ---
 
@@ -295,9 +309,10 @@ z `src/` i z losowego CWD).
 3. ~~**K-2** (ZeroDivision)~~ — ✅ naprawione (2026-11-04).
 4. ~~**K-3** (pygame.quit)~~ — ✅ naprawione (2026-11-04).
 5. ~~**K-4** (fullscreen)~~ — ✅ naprawione (2026-11-04, windowed domyślnie).
-6. **W-3** (saucer w pętli) — latencja/mina logiczna.
-7. **W-7** (safe area) — gameplay, TODO z kodu.
+6. ~~**W-3** (saucer w pętli)~~ — ✅ naprawione (2026-11-04, plaster W-B).
+7. ~~**W-7** (safe area)~~ — ✅ naprawione (2026-11-04, plaster W-B).
 8. **M-15** (testy) — ochrona przed regresjami.
 9. ~~**M-14** (requirements.txt)~~ — ✅ naprawione (2026-11-04).
 10. ~~**W-1, W-2, W-8**~~ — ✅ naprawione (2026-11-04, plaster W-A).
-11. Reszta W/M — przy okazji.
+11. ~~**W-3, W-7, W-10**~~ — ✅ naprawione (2026-11-04, plaster W-B).
+12. Reszta W/M — przy okazji.

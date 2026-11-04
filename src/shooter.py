@@ -60,4 +60,7 @@ class Bullet(Point):
     def move(self):
         Point.move(self)
         if (self.ttl <= 0):
-            self.shooter.bullets.remove(self)
+            # Guard against a bullet already removed (e.g. it collided
+            # and expired in the same frame) — never raise ValueError.
+            if self in self.shooter.bullets:
+                self.shooter.bullets.remove(self)

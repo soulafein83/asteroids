@@ -318,11 +318,15 @@ class Asteroids():
         newRocks = []
         shipHit, saucerHit = False, False
 
+        # Safe area: a freshly respawned ship is invulnerable while the
+        # respawn timer is running.
+        safe = self.ship.respawnTimer > 0
+
         # Rocks
         for rock in self.rockList:
             rockHit = False
 
-            if not self.ship.inHyperSpace and rock.collidesWith(self.ship):
+            if not safe and not self.ship.inHyperSpace and rock.collidesWith(self.ship):
                 p = rock.checkPolygonCollision(self.ship)
                 if p is not None:
                     shipHit = True
@@ -335,10 +339,6 @@ class Asteroids():
 
                 if self.saucer.bulletCollision(rock):
                     rockHit = True
-
-                if self.ship.bulletCollision(self.saucer):
-                    saucerHit = True
-                    self.score += self.saucer.scoreValue
 
             if self.ship.bulletCollision(rock):
                 rockHit = True
@@ -369,9 +369,13 @@ class Asteroids():
 
                 self.createDebris(rock)
 
-        # Saucer bullets
+        # Saucer (evaluated once per frame, outside the rock loop)
         if self.saucer is not None:
-            if not self.ship.inHyperSpace:
+            if self.ship.bulletCollision(self.saucer):
+                saucerHit = True
+                self.score += self.saucer.scoreValue
+
+            if not safe and not self.ship.inHyperSpace:
                 if self.saucer.bulletCollision(self.ship):
                     shipHit = True
 
