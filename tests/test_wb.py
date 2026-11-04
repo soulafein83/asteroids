@@ -93,6 +93,8 @@ def test_bullet_remove_guard(game):
     assert b1 not in sh.bullets
 
     # ... and an expired bullet still in the list gets removed cleanly.
+    sh.cooldownTimer = 0  # P-4: baseline fire cooldown; this test checks
+    # the removal guard, not the fire rate
     sh.fireBullet()
     assert len(sh.bullets) == 1
     b2 = sh.bullets[-1]

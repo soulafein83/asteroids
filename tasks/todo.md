@@ -76,14 +76,14 @@ aktywna.
 strzał w `fireBullet()` i ustawiany po udanym strzale.
 
 **Acceptance criteria:**
-- [ ] baseline: po strzale kolejny możliwy dopiero po 10 klatkach (bez power-upów `maxBullets == 4`)
-- [ ] E: `maxBullets == 8` przez 600 klatek, potem wraca do 4
-- [ ] R: `fireCooldown == 3` przez 600 klatek, potem wraca do 10
-- [ ] `Shooter.fireBullet` nadal honoruje limit (stary test regresji strzału przechodzi)
+- [x] baseline: po strzale kolejny możliwy dopiero po 10 klatkach (bez power-upów `maxBullets == 4`)
+- [x] E: `maxBullets == 8` przez 600 klatek, potem wraca do 4
+- [x] R: `fireCooldown == 3` przez 600 klatek, potem wraca do 10
+- [x] `Shooter.fireBullet` nadal honoruje limit (stary test regresji strzału przechodzi)
 
 **Verification:**
-- [ ] `python3 -m pytest` zielony (regresja 46 + nowe)
-- [ ] smoke EXIT=124
+- [x] `python3 -m pytest` zielony (regresja 46 + nowe)
+- [x] smoke EXIT=124
 - [ ] manual: tempo ognia 6/s nie przeszkadza (checkpoint)
 
 **Dependencies:** P-3

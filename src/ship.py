@@ -32,11 +32,29 @@ class Ship(Shooter):
     maxVelocity = 10
     turnAngle = 6
     bulletVelocity = 13.0
-    maxBullets = 4
     bulletTtl = 35
     # A power-up effect lasts this many frames; picking the same power-up
     # again refreshes the timer to a full duration (it does not stack).
     powerUpTtl = 600
+    # P-4: baseline firing values; the live values are the maxBullets and
+    # fireCooldown properties (the E and R power-ups adjust them).
+    baseMaxBullets = 4
+    baseFireCooldown = 10   # frames between shots: 6/s at 60 fps
+    rapidFireCooldown = 3   # frames between shots with R active: 20/s
+
+    @property
+    def maxBullets(self):
+        # E power-up: double the number of bullets that may fly at once.
+        if self.extraBulletsTimer > 0:
+            return self.baseMaxBullets * 2
+        return self.baseMaxBullets
+
+    @property
+    def fireCooldown(self):
+        # R power-up: a much faster trigger.
+        if self.rapidFireTimer > 0:
+            return self.rapidFireCooldown
+        return self.baseFireCooldown
 
     def __init__(self, stage):
 
@@ -172,12 +190,18 @@ class Ship(Shooter):
 
     def fireBullet(self):
         if self.inHyperSpace == False:
+            # P-4: the fire cooldown blocks shots until it counts down;
+            # it is armed after every successful shot.
+            if self.cooldownTimer > 0:
+                return
+
             vx = self.bulletVelocity * math.sin(radians(self.angle)) * -1
             vy = self.bulletVelocity * math.cos(radians(self.angle)) * -1
             heading = Vector2d(vx, vy)
-            Shooter.fireBullet(self, heading, self.bulletTtl,
-                               self.bulletVelocity)
-            playSound("fire")
+            if Shooter.fireBullet(self, heading, self.bulletTtl,
+                                  self.bulletVelocity):
+                self.cooldownTimer = self.fireCooldown
+                playSound("fire")
 
     # P-3: a picked-up power-up arms the matching effect timer.  Only the
     # shield (S) has an effect in this slice; E and R set their timers

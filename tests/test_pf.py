@@ -356,3 +356,100 @@ def test_shield_draw_does_not_crash(game):
     ship.shieldTimer = 600
     game.stage.screen.fill((10, 10, 10))
     ship.draw()
+
+
+# ---------------------------------------------------------------------
+# P-4: extra bullets (E) + rapid fire (R) + baseline fire cooldown
+# ---------------------------------------------------------------------
+
+def test_ship_baseline_max_bullets_and_cooldown(game):
+    ship = game.ship
+    assert ship.maxBullets == 4
+    assert ship.fireCooldown == 10
+
+
+def test_successful_shot_sets_cooldown_timer(game):
+    ship = game.ship
+    assert ship.cooldownTimer == 0
+
+    ship.fireBullet()
+
+    assert len(ship.bullets) == 1
+    assert ship.cooldownTimer == 10  # baseFireCooldown
+
+
+def test_cannot_fire_during_cooldown(game):
+    ship = game.ship
+    ship.cooldownTimer = 5
+
+    ship.fireBullet()
+
+    assert len(ship.bullets) == 0
+
+
+def test_cooldown_counts_down_and_allows_next_shot(game):
+    ship = game.ship
+    ship.fireBullet()
+
+    for _ in range(10):
+        ship.move()
+
+    assert ship.cooldownTimer == 0
+    ship.fireBullet()
+    assert len(ship.bullets) == 2
+
+
+def test_pickup_E_and_R_arm_their_timers(game):
+    ship = game.ship
+    for letter in "ER":
+        pu = PowerUp(game.stage,
+                     Vector2d(ship.position.x, ship.position.y), letter)
+        game.stage.addSprite(pu)
+        game.powerUpList.append(pu)
+
+        game.stage.drawSprites()
+        game.checkCollisions()
+
+    assert ship.extraBulletsTimer == 600
+    assert ship.rapidFireTimer == 600
+    assert game.powerUpList == []
+
+
+def test_extra_bullets_doubles_max_bullets_for_600_frames(game):
+    ship = game.ship
+    ship.extraBulletsTimer = 600
+    assert ship.maxBullets == 8
+
+    for _ in range(600):
+        ship.move()
+
+    assert ship.extraBulletsTimer == 0
+    assert ship.maxBullets == 4
+
+
+def test_rapid_fire_shrinks_cooldown_for_600_frames(game):
+    ship = game.ship
+    ship.rapidFireTimer = 600
+    assert ship.fireCooldown == 3
+
+    ship.fireBullet()
+    assert ship.cooldownTimer == 3
+
+    for _ in range(600):
+        ship.move()
+
+    assert ship.rapidFireTimer == 0
+    assert ship.fireCooldown == 10
+
+
+def test_ship_respects_max_bullets_while_E_active(game):
+    # Shooter.fireBullet must honour the live (property) maxBullets:
+    # with E active the cap is 8, and it must still refuse beyond that.
+    ship = game.ship
+    ship.extraBulletsTimer = 600
+
+    for _ in range(10):
+        ship.cooldownTimer = 0
+        ship.fireBullet()
+
+    assert len(ship.bullets) == 8
