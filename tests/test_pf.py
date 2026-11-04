@@ -6,10 +6,12 @@
 # the stage, like every other sprite.
 
 import math
+import random
 
 import pygame
 
 from util.vector2d import Vector2d
+from enemies import Rock
 from item import PowerUp
 
 
@@ -96,3 +98,85 @@ def test_powerup_draw_blinks_when_about_to_expire(game):
     pu.ttl = 118
     pu.draw()
     assert pu.font.render_calls == 2  # even TTL: hidden (blink off)
+
+
+# ---------------------------------------------------------------------
+# P-2: power-up spawning from destroyed rocks
+# ---------------------------------------------------------------------
+
+def _force_spawn_roll(monkeypatch):
+    # Win the 10% roll and deterministically pick the letter "S".
+    monkeypatch.setattr(random, "uniform", lambda a, b: 0.05)
+    monkeypatch.setattr(random, "choice", lambda seq: "S")
+
+
+def test_initialise_game_starts_with_empty_power_up_list(game):
+    assert game.powerUpList == []
+
+
+def test_initialise_game_clears_power_ups(game):
+    pu = PowerUp(game.stage, Vector2d(100, 100), "S")
+    game.stage.addSprite(pu)
+    game.powerUpList.append(pu)
+
+    game.initialiseGame()
+
+    assert game.powerUpList == []
+    assert pu not in game.stage.spriteList
+
+
+def test_maybe_spawn_power_up_on_win(game, monkeypatch):
+    _force_spawn_roll(monkeypatch)
+    game.maybeSpawnPowerUp(Vector2d(50, 50))
+    assert len(game.powerUpList) == 1
+    pu = game.powerUpList[0]
+    assert pu.letter == "S"
+    assert pu in game.stage.spriteList
+
+
+def test_maybe_spawn_power_up_on_loss(game, monkeypatch):
+    monkeypatch.setattr(random, "uniform", lambda a, b: 0.99)
+    game.maybeSpawnPowerUp(Vector2d(50, 50))
+    assert game.powerUpList == []
+
+
+def test_spawn_is_capped_at_three(game, monkeypatch):
+    for letter in "ERS":
+        pu = PowerUp(game.stage, Vector2d(100, 100), letter)
+        game.stage.addSprite(pu)
+        game.powerUpList.append(pu)
+
+    _force_spawn_roll(monkeypatch)
+    game.maybeSpawnPowerUp(Vector2d(200, 200))
+
+    assert len(game.powerUpList) == 3
+
+
+def test_destroyed_rock_can_spawn_power_up(game, monkeypatch):
+    # Deterministic setup: clear the fixture's random rocks and place a
+    # single large rock in the ship's firing line.
+    for r in list(game.rockList):
+        game.stage.removeSprite(r)
+    game.rockList.clear()
+
+    ship = game.ship
+    ship.position.x = 100
+    ship.position.y = 100
+    ship.angle = -90  # fires straight right: heading (13, 0)
+
+    rock = Rock(game.stage, Vector2d(200, 100), Rock.largeRockType)
+    game.stage.addSprite(rock)
+    game.rockList.append(rock)
+
+    ship.fireBullet()
+    b = ship.bullets[-1]
+    for _ in range(6):  # 6 * 13 = 78 -> bullet at x=178, inside the rock
+        b.move()
+    game.stage.drawSprites()
+
+    _force_spawn_roll(monkeypatch)
+    game.checkCollisions()
+
+    assert rock not in game.rockList
+    assert len(game.powerUpList) == 1
+    assert game.powerUpList[0] in game.stage.spriteList

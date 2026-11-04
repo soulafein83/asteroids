@@ -37,6 +37,7 @@ from ship import *
 from stage import *
 from enemies import *
 from shooter import *
+from item import *
 from soundManager import *
 from util import FONT_PATH
 
@@ -44,6 +45,11 @@ from util import FONT_PATH
 class Asteroids():
 
     explodingTtl = 180
+    # Power-up spawning (P-2): a destroyed rock drops a power-up with a
+    # small chance, capped at three on screen at once.
+    maxPowerUps = 3
+    powerUpChance = 0.1
+    powerUpLetters = "ERS"
 
     def __init__(self):
         self.stage = Stage('Atari Asteroids', (1024, 768))
@@ -68,6 +74,7 @@ class Asteroids():
         self.frameAdvance = False
         self.gameState = "attract_mode"
         self.rockList = []
+        self.powerUpList = []
         self.createRocks(3)
         self.saucer = None
         self.secondsCount = 1
@@ -79,6 +86,8 @@ class Asteroids():
         self.gameState = 'playing'
         [self.stage.removeSprite(sprite)
          for sprite in self.rockList]  # clear old rocks
+        [self.stage.removeSprite(sprite)
+         for sprite in self.powerUpList]  # clear old power-ups
         if self.saucer is not None:
             self.killSaucer()
         # Reset the life counter so a new game always starts from a clean
@@ -89,6 +98,7 @@ class Asteroids():
         self.createLivesList()
         self.score = 0
         self.rockList = []
+        self.powerUpList = []
         self.numRocks = 3
         self.nextLife = 10000
 
@@ -133,6 +143,19 @@ class Asteroids():
             newRock = Rock(self.stage, position, Rock.largeRockType)
             self.stage.addSprite(newRock)
             self.rockList.append(newRock)
+
+    def maybeSpawnPowerUp(self, position):
+        # A destroyed rock drops a power-up with a small chance.  The
+        # roll is made before the cap check so losing rolls never
+        # consume a slot; the cap keeps at most three on screen.
+        if random.uniform(0, 1) >= self.powerUpChance:
+            return
+        if len(self.powerUpList) >= self.maxPowerUps:
+            return
+        letter = random.choice(self.powerUpLetters)
+        powerUp = PowerUp(self.stage, position, letter)
+        self.stage.addSprite(powerUp)
+        self.powerUpList.append(powerUp)
 
     def playGame(self):
 
@@ -371,6 +394,9 @@ class Asteroids():
                         newRock = Rock(self.stage, position, newRockType)
                         self.stage.addSprite(newRock)
                         self.rockList.append(newRock)
+
+                self.maybeSpawnPowerUp(
+                    Vector2d(rock.position.x, rock.position.y))
 
                 self.createDebris(rock)
 

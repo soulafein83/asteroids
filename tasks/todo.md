@@ -31,14 +31,14 @@ losowa literka z E/R/S, limit 3 power-upów na ekranie. Hook w gałęzi
 `rockHit` w `checkCollisions()`.
 
 **Acceptance criteria:**
-- [ ] przy wymuszonej wygranej losowaniu spawnuje się PowerUp w pozycji skały (lista + spriteList)
-- [ ] przy przegranej losowaniu nic się nie spawnuje
-- [ ] z 3 power-upami na ekranie kolejny spawn jest ignorowany
-- [ ] `initialiseGame()` czyści `powerUpList` i usuwa sprite'y
+- [x] przy wymuszonej wygranej losowaniu spawnuje się PowerUp w pozycji skały (lista + spriteList)
+- [x] przy przegranej losowaniu nic się nie spawnuje
+- [x] z 3 power-upami na ekranie kolejny spawn jest ignorowany
+- [x] `initialiseGame()` czyści `powerUpList` i usuwa sprite'y
 
 **Verification:**
-- [ ] `python3 -m pytest` zielony (regresja + nowe testy spawnu)
-- [ ] smoke EXIT=124
+- [x] `python3 -m pytest` zielony (regresja + nowe testy spawnu)
+- [x] smoke EXIT=124
 
 **Dependencies:** P-1
 **Files likely touched:** `src/asteroids.py`, `tests/test_pf.py`
