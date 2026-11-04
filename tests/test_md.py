@@ -2,7 +2,7 @@
 # M-3: fresh transformedPointlist in checkPolygonCollision).
 
 from util.vector2d import Vector2d
-from badies import Rock
+from enemies import Rock
 
 
 def _set_shape(rock, shape_idx, scale):

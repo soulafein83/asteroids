@@ -1,5 +1,5 @@
 """Tests for the W-B patch: collision safety zone (W-3, W-7), bullet removal (W-10)."""
-from badies import Rock, Saucer
+from enemies import Rock, Saucer
 from ship import Ship
 from util.vectorsprites import Vector2d
 

@@ -2,7 +2,7 @@
 import math
 import random
 
-from badies import Rock, Debris, Saucer
+from enemies import Rock, Debris, Saucer
 from ship import Ship
 from util.vectorsprites import Vector2d
 

@@ -2,7 +2,7 @@
 # thrustJet.ship binding on respawn).
 
 from shooter import Shooter
-from badies import Saucer
+from enemies import Saucer
 
 
 def test_saucer_max_bullets_is_instance_attribute(game):

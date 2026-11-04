@@ -36,7 +36,7 @@ from pygame.locals import *
 from util.vectorsprites import *
 from ship import *
 from stage import *
-from badies import *
+from enemies import *
 from shooter import *
 from soundManager import *
 from util import RES_DIR
