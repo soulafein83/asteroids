@@ -97,6 +97,11 @@ class VectorSprite:
     # Check each line from pointlist1 for intersection with
     # the lines in pointlist2
     def checkPolygonCollision(self, target):
+        # M-3: refresh both transforms first so a stale pointlist (a
+        # sprite that moved since its last draw, e.g. attract mode) can
+        # never hide a real overlap.
+        self.rotateAndTransform()
+        target.rotateAndTransform()
         for i in range(0, len(self.transformedPointlist)):
             for j in range(0, len(target.transformedPointlist)):
                 p1 = self.transformedPointlist[i-1]

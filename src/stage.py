@@ -44,11 +44,17 @@ class Stage:
         self.height = dimensions[1]
         self.showBoundingBoxes = False
 
-    # Add sprite to list then draw it as a easy way to get the bounding rect
+    # Add sprite to list, then build its initial bounding rect WITHOUT the
+    # side effect of draw(): refresh the transform in place and take a
+    # strict point AABB from the transformed pointlist (M-2).  The first
+    # drawSprites() pass will render it as usual.
     def addSprite(self, sprite):
         self.spriteList.append(sprite)
-        sprite.boundingRect = pygame.draw.aalines(
-            self.screen, sprite.color, True, sprite.draw())
+        sprite.rotateAndTransform()
+        xs = [p[0] for p in sprite.transformedPointlist]
+        ys = [p[1] for p in sprite.transformedPointlist]
+        sprite.boundingRect = pygame.Rect(
+            min(xs), min(ys), max(xs) - min(xs), max(ys) - min(ys))
 
     def removeSprite(self, sprite):
         self.spriteList.remove(sprite)
