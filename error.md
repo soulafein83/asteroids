@@ -247,35 +247,55 @@ z `src/` i z losowego CWD).
   Bez operatorów każda operacja wektorowa to 4 linijki.
 - Poprawka: `__add__`, `__sub__`, `__mul__`, `__eq__`, `__repr__`, `magnitude()`.
 
-### M-7. `geometry.py` — `assert false` (lowercase) + `assert` w produkcyjnym kodzie
+### M-7. ~~`geometry.py` — `assert false` (lowercase) + `assert` w produkcyjnym kodzie~~ ✅ NAPRAWIONE
 - `src/util/geometry.py:83` — `assert false` = `assert 0`; w Pythonie
   `False` (uppercase) ale i tak: `assert` w produkcyjnym kodzie jest
-  wyłączane przy `-O`.
-- Poprawka: `raise AssertionError("both lines vertical — impossible")`
-  albo `# unreachable` komentarz.
+  wyłączane przy `-O`. Do tego `false` (lowercase) to w Pythonie
+  niezdefiniowana nazwa — gdyby gałąź się wykonała, padłby `NameError`.
+- **Poprawka (zrealizowana 2026-11-04, M-A `c6beff7`):**
+  `raise AssertionError("both lines vertical, yet treated as non-parallel")`
+  + komentarz `# Unreachable`: gałąź wymagałaby `m1` i `m2` nie-`None`,
+  a trafia się do niej tylko gdy choć jedno z nich jest `None`.
+- **Weryfikacja:** self-test `python3 src/util/geometry.py` zielony;
+  pełna suita (27 testów) zielona.
 
-### M-8. `geometry.py` — `str = "point was invalid  ", point` zasłania built-in
+### M-8. ~~`geometry.py` — `str = "point was invalid  ", point` zasłania built-in~~ ✅ NAPRAWIONE
 - `src/util/geometry.py:152` — `str` to built-in; po tej linii `str(...)`
   w tym作用 scope nie działa.
-- Poprawka: `print(f"point was invalid: {point}")` albo `logging.warning`.
+- **Poprawka (zrealizowana 2026-11-04, M-A `c6beff7`):**
+  `print("point was invalid:", point)` — bez cienia na `str`.
+- **Weryfikacja:** self-test geometry.py + suita (27 testów) zielone.
 
-### M-9. `geometry.py` — bare `except:`
+### M-9. ~~`geometry.py` — bare `except:`~~ ✅ NAPRAWIONE
 - `src/util/geometry.py:150` — łapie WSZYSTKO łącznie z `KeyboardInterrupt`
   i `SystemExit`.
-- Poprawka: `except (ValueError, OverflowError):`.
+- **Poprawka (zrealizowana 2026-11-04, M-A `c6beff7`):**
+  `except (TypeError, ValueError, OverflowError):` — `TypeError`
+  doliczony do propozycji (zawrot konwersji float→int w `collidepoint`
+  rzuciłby właśnie `TypeError`).
+- **Weryfikacja:** testy `tests/test_ma.py` — każdy z trzech typów jest
+  połknięty (funkcja zwraca `None`), a `RuntimeError` propaguje się
+  (stary bare `except:` by go zasłonił).
 
 ### M-10. ~~`soundManager.py` — `channel = sounds[...].play()` bez użycia~~ ✅
 - Zamknięte razem z K-5 (2026-11-04): `channel` nie jest już przypisywane;
   funkcje grają tylko gdy `sound_available`.
 
-### M-11. `asteroids.py` — `frameCount` jako float, `frameCount % 10` na floatach
+### M-11. ~~`asteroids.py` — `frameCount` jako float, `frameCount % 10` na floatach~~ ✅ NAPRAWIONE
 - `src/asteroids.py:115, 123-129` — działa, ale `frameCount` jest intem
   po co? float modulo int = float; `round(...)` OK.
-- Poprawka: `frameCount = 0` (int).
+- **Poprawka (zrealizowana 2026-11-04, M-A `c6beff7`):** `frameCount = 0` (int).
+- **Weryfikacja:** `frameCount` używany tylko jako licznik intowy
+  (`+= 1`, `% 10`, porównanie z 0) — smoke test 5 s zielony (EXIT=124,
+  bez tracebacka).
 
-### M-12. `ship.py` — `decelaration` (literówka)
+### M-12. ~~`ship.py` — `decelaration` (literówka)~~ ✅ NAPRAWIONE
 - `src/ship.py:30` — `decelaration` zamiast `deceleration`.
-- Poprawka: rename + aktualizacja użycia.
+- **Poprawka (zrealizowana 2026-11-04, M-A `c6beff7`):** rename
+  atrybutu klasowego + aktualizacja 2 użycia w `decreaseThrust()`.
+- **Weryfikacja:** testy `tests/test_ma.py` — `Ship` ma
+  `deceleration` (nie `decelaration`) i `move()` nadal tłumi
+  `heading` o `|deceleration|` (0.995 z 1.0).
 
 ### M-13. ~~`stage.py` — `if dimensions == None`~~ ✅
 - Zamknięte przy K-4 (2026-11-04): `if dimensions is None:`.
