@@ -46,10 +46,11 @@ class Asteroids():
 
     explodingTtl = 180
     # Power-up spawning (P-2): a destroyed rock drops a power-up with a
-    # small chance, capped at three on screen at once.
+    # small chance, capped at three on screen at once.  Q-1 adds B (bomb)
+    # to the pool: uniform 1/4 spawn chance.
     maxPowerUps = 3
     powerUpChance = 0.1
-    powerUpLetters = "ERS"
+    powerUpLetters = "ERBS"
 
     def __init__(self):
         self.stage = Stage('Atari Asteroids', (1024, 768))
@@ -76,6 +77,9 @@ class Asteroids():
             self.powerUpSurfaces[letter] = (
                 self.fonts[20].render(letter, True, (255, 255, 255)),
                 self.fonts[20].render(letter, True, (80, 80, 80)))
+        # Q-1: HUD flash for the bomb letter B — armed by the bomb pickup
+        # (Q-2), read by displayPowerUps() from Q-1.
+        self.bombFlashTimer = 0
         self.paused = False
         self.showingFPS = False
         self.frameAdvance = False
@@ -106,6 +110,7 @@ class Asteroids():
         self.score = 0
         self.rockList = []
         self.powerUpList = []
+        self.bombFlashTimer = 0
         self.numRocks = 3
         self.nextLife = 10000
 
@@ -291,6 +296,8 @@ class Asteroids():
             "E": self.ship.extraBulletsTimer,
             "R": self.ship.rapidFireTimer,
             "S": self.ship.shieldTimer,
+            # Q-1: B is bright while the bomb flash runs (armed in Q-2).
+            "B": self.bombFlashTimer,
         }
         gap = 8
         x = self.stage.width - 12  # right edge of the rightmost letter

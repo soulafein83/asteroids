@@ -127,3 +127,58 @@ cache'owane fonty (M-1) — statyczne surface w `__init__`, blit per frame.
 - [x] smoke EXIT=124
 - [x] atomic commit + push na fork
 - [x] manual: power-upy w akcji (spawn, pickup, HUD, tarcza)
+
+---
+
+# Tasks: Power-up B — bomba (blok Q)
+
+## Task Q-1: B w puli power-upów i HUD
+
+**Description:** `powerUpLetters = "ERBS"` (B spawnuje równo, 1/4),
+`bombFlashTimer = 0` w `__init__` + reset w `initialiseGame()`, wpis "B"
+w słowniku `timers` w `displayPowerUps()` (przyciemniona — jeszcze bez
+efektu). Pętle `powerUpSurfaces`/`displayPowerUps()` są generyczne.
+
+**Acceptance criteria:**
+- [x] `powerUpSurfaces` zawiera "B" (jasna + przyciemniona, różne surface)
+- [x] `maybeSpawnPowerUp` potrafi wyprodukować power-up z literą "B"
+- [x] pickup "B": usunięcie z listy i stage, żadnego wpływu na timery stateku
+- [x] HUD renderuje 4 literki (B przyciemniona) bez crashu
+
+**Verification:**
+- [x] `python3 -m pytest` zielony (81 + nowe)
+- [x] smoke EXIT=124
+
+**Dependencies:** P-5
+**Files likely touched:** `src/asteroids.py`, `tests/test_pf.py`
+**Estimated scope:** S (2 pliki)
+
+## Task Q-2: efekt bomby (B)
+
+**Description:** `Asteroids.explodeAllRocks()`: niszczy wszystkie skały
+(bez podziału), punkty/dźwięk/debris jak przy trafieniu pociskiem,
+`maybeSpawnPowerUp` dla każdej skały, flash `bombFlashTimer =
+bombFlashTtl` (30). Rozgałęzienie pickupu w `checkCollisions()` na "B".
+Dekrement `bombFlashTimer` w `playing()`.
+
+**Acceptance criteria:**
+- [ ] pickup "B": `rockList` pusty, bez podziału (żadnych nowych skał), power-up usunięty
+- [ ] punkty: +50/+100/+200 za każdą zniszczoną skałę
+- [ ] debris za każdą skałę; saucer nietknięty
+- [ ] bomba przy 0 skałach: bez crashu, flash ustawiony
+- [ ] skała zniszczona bombą może upuścić power-up (hook spawnu)
+- [ ] flash: 30 klatek, dekrementowany w `playing()`, B jasna/ciemna w HUD
+
+**Verification:**
+- [ ] `python3 -m pytest` zielony
+- [ ] smoke EXIT=124
+
+**Dependencies:** Q-1
+**Files likely touched:** `src/asteroids.py`, `tests/test_pf.py`
+**Estimated scope:** S-M (2 pliki)
+
+## Checkpoint: Complete Q (po Q-2)
+- [ ] pełny suite zielony
+- [ ] smoke EXIT=124
+- [ ] atomic commit + push na fork
+- [ ] manual: w grze podniesienie B czyści ekran i B zapala się w HUD

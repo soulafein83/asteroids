@@ -467,10 +467,10 @@ def _pixels(surface):
 
 
 def test_hud_surfaces_are_cached_in_init(game):
-    # M-1: the E/R/S letter surfaces are pre-rendered once in __init__ —
+    # M-1: the E/R/S/B letter surfaces are pre-rendered once in __init__ —
     # a bright variant (effect active) and a dim one (inactive).
-    assert set(game.powerUpSurfaces) == set("ERS")
-    for letter in "ERS":
+    assert set(game.powerUpSurfaces) == set("ERBS")
+    for letter in "ERBS":
         bright, dim = game.powerUpSurfaces[letter]
         assert isinstance(bright, pygame.Surface)
         assert isinstance(dim, pygame.Surface)
@@ -542,7 +542,7 @@ def test_display_power_ups_only_blits_cached_surfaces(game):
     finally:
         game.stage.screen = real_screen
 
-    assert len(recording.blitted) == 9
+    assert len(recording.blitted) == 12  # 4 letters x 3 frames
     for surface in recording.blitted:
         assert any(surface is c for c in cached)
 
@@ -576,3 +576,48 @@ def test_display_power_ups_is_called_in_game_loop(game):
 
     assert frames["n"] > 30
     assert len(calls) == 30
+
+
+# ---------------------------------------------------------------------
+# Q-1: the B (bomb) letter in the power-up pool and the HUD
+# ---------------------------------------------------------------------
+
+def test_B_is_in_pool_and_has_cached_surfaces(game):
+    # B joins the pool (uniform 1/4 spawn chance) and gets a cached
+    # bright/dim HUD surface pair like E/R/S.
+    assert "B" in game.powerUpLetters
+    assert set(game.powerUpSurfaces) == set("ERBS")
+    bright, dim = game.powerUpSurfaces["B"]
+    assert _pixels(bright) != _pixels(dim)
+
+
+def test_spawn_can_produce_B(game, monkeypatch):
+    monkeypatch.setattr(random, "uniform", lambda a, b: 0.0)
+    monkeypatch.setattr(random, "choice", lambda seq: "B")
+    game.maybeSpawnPowerUp(Vector2d(100, 100))
+    assert len(game.powerUpList) == 1
+    assert game.powerUpList[0].letter == "B"
+
+
+def test_pickup_B_is_removed_without_ship_effect(game):
+    # Q-1: B is picked up and removed from the stage; no ship timer
+    # changes (the bomb effect itself arrives in Q-2).  The flash
+    # timer exists from Q-1 and stays at 0.
+    for r in list(game.rockList):
+        game.stage.removeSprite(r)
+    game.rockList.clear()
+
+    ship = game.ship
+    pu = PowerUp(game.stage,
+                 Vector2d(ship.position.x, ship.position.y), "B")
+    game.stage.addSprite(pu)
+    game.powerUpList.append(pu)
+
+    game.checkCollisions()
+
+    assert pu not in game.powerUpList
+    assert pu not in game.stage.spriteList
+    assert ship.extraBulletsTimer == 0
+    assert ship.rapidFireTimer == 0
+    assert ship.shieldTimer == 0
+    assert game.bombFlashTimer == 0
