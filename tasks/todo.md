@@ -84,7 +84,7 @@ strzał w `fireBullet()` i ustawiany po udanym strzale.
 **Verification:**
 - [x] `python3 -m pytest` zielony (regresja 46 + nowe)
 - [x] smoke EXIT=124
-- [ ] manual: tempo ognia 6/s nie przeszkadza (checkpoint)
+- [x] manual: tempo ognia 6/s nie przeszkadza (checkpoint)
 
 **Dependencies:** P-3
 **Files likely touched:** `src/ship.py`, `tests/test_pf.py`
@@ -104,7 +104,7 @@ cache'owane fonty (M-1) — statyczne surface w `__init__`, blit per frame.
 **Verification:**
 - [x] `python3 -m pytest` zielony
 - [x] smoke EXIT=124
-- [ ] manual: rząd liter widać w prawym górnym rogu
+- [x] manual: rząd liter widać w prawym górnym rogu
 
 **Dependencies:** P-3
 **Files likely touched:** `src/asteroids.py`, `tests/test_pf.py`
@@ -120,10 +120,10 @@ cache'owane fonty (M-1) — statyczne surface w `__init__`, blit per frame.
 - [x] pełny suite zielony
 - [x] smoke EXIT=124
 - [x] atomic commit + push na fork
-- [ ] manual: tempo ognia + tarcza w grze
+- [x] manual: tempo ognia + tarcza w grze
 
 ## Checkpoint: Complete (po P-5)
-- [ ] pełny suite zielony
-- [ ] smoke EXIT=124
-- [ ] atomic commit + push na fork
-- [ ] manual: power-upy w akcji (spawn, pickup, HUD, tarcza)
+- [x] pełny suite zielony
+- [x] smoke EXIT=124
+- [x] atomic commit + push na fork
+- [x] manual: power-upy w akcji (spawn, pickup, HUD, tarcza)
