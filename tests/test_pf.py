@@ -11,7 +11,7 @@ import random
 import pygame
 
 from util.vector2d import Vector2d
-from enemies import Rock, Saucer
+from enemies import Rock, Saucer, Debris
 from item import PowerUp
 
 
@@ -600,9 +600,9 @@ def test_spawn_can_produce_B(game, monkeypatch):
 
 
 def test_pickup_B_is_removed_without_ship_effect(game):
-    # Q-1: B is picked up and removed from the stage; no ship timer
-    # changes (the bomb effect itself arrives in Q-2).  The flash
-    # timer exists from Q-1 and stays at 0.
+    # Q-1/Q-2: B is picked up and removed from the stage; no ship effect
+    # timer changes (the bomb is a global effect) but the HUD flash is
+    # armed for bombFlashTtl frames.
     for r in list(game.rockList):
         game.stage.removeSprite(r)
     game.rockList.clear()
@@ -620,4 +620,163 @@ def test_pickup_B_is_removed_without_ship_effect(game):
     assert ship.extraBulletsTimer == 0
     assert ship.rapidFireTimer == 0
     assert ship.shieldTimer == 0
-    assert game.bombFlashTimer == 0
+    assert game.bombFlashTimer == 30
+
+
+# ---------------------------------------------------------------------
+# Q-2: the bomb effect (B) + HUD flash
+# ---------------------------------------------------------------------
+
+def _setup_rocks(game, specs):
+    # Clear the fixture rocks and place fresh ones far from the ship so
+    # only the bomb (never a ship collision) destroys them.
+    for r in list(game.rockList):
+        game.stage.removeSprite(r)
+    game.rockList.clear()
+
+    ship = game.ship
+    ship.position.x = 400
+    ship.position.y = 300
+    ship.respawnTimer = 0
+
+    for rockType, x, y in specs:
+        rock = Rock(game.stage, Vector2d(x, y), rockType)
+        game.stage.addSprite(rock)
+        game.rockList.append(rock)
+
+
+def _place_bomb_at_ship(game):
+    # drawSprites() refreshes boundingRects (stage.py) after the ship was
+    # moved — without it the pickup would test against the stale rect.
+    ship = game.ship
+    pu = PowerUp(game.stage,
+                 Vector2d(ship.position.x, ship.position.y), "B")
+    game.stage.addSprite(pu)
+    game.powerUpList.append(pu)
+    game.stage.drawSprites()
+    return pu
+
+
+def test_bomb_destroys_every_rock_without_splitting(game):
+    # The bomb is a final explosion: a large rock does NOT leave two
+    # medium rocks behind — the screen is cleared to zero rocks.
+    _setup_rocks(game, [(Rock.largeRockType, 50, 50),
+                        (Rock.mediumRockType, 150, 50),
+                        (Rock.smallRockType, 50, 150)])
+    pu = _place_bomb_at_ship(game)
+
+    game.checkCollisions()
+
+    assert game.rockList == []
+    assert not [s for s in game.stage.spriteList
+                if isinstance(s, Rock)]
+    assert pu not in game.powerUpList
+    assert pu not in game.stage.spriteList
+
+
+def test_bomb_scores_every_rock(game):
+    _setup_rocks(game, [(Rock.largeRockType, 50, 50),
+                        (Rock.mediumRockType, 150, 50),
+                        (Rock.smallRockType, 50, 150)])
+    game.score = 0
+    _place_bomb_at_ship(game)
+
+    game.checkCollisions()
+
+    # 50 + 100 + 200 — the same values a bullet hit credits.
+    assert game.score == 350
+
+
+def test_bomb_drops_debris_for_every_rock(game):
+    _setup_rocks(game, [(Rock.largeRockType, 50, 50),
+                        (Rock.smallRockType, 150, 50)])
+    _place_bomb_at_ship(game)
+
+    game.checkCollisions()
+
+    debris = [s for s in game.stage.spriteList if isinstance(s, Debris)]
+    assert len(debris) == 50  # 25 per rock
+
+
+def test_bomb_leaves_saucer_untouched(game):
+    _setup_rocks(game, [(Rock.smallRockType, 50, 50)])
+    _place_bomb_at_ship(game)
+
+    saucer = Saucer(game.stage, Saucer.largeSaucerType, game.ship)
+    saucer.position.x = 100
+    saucer.position.y = 500
+    game.stage.addSprite(saucer)
+    game.saucer = saucer
+
+    game.checkCollisions()
+
+    assert game.rockList == []
+    assert game.saucer is saucer
+    assert saucer in game.stage.spriteList
+
+
+def test_bomb_with_no_rocks_still_flashes(game):
+    # An empty screen must not break the pickup: the power-up is removed
+    # and the HUD flash is still armed.
+    _setup_rocks(game, [])
+    _place_bomb_at_ship(game)
+
+    game.checkCollisions()
+
+    assert game.rockList == []
+    assert game.bombFlashTimer == 30
+    assert len(game.powerUpList) == 0
+
+
+def test_bomb_destroyed_rock_can_drop_power_up(game, monkeypatch):
+    # Invariant from P-2: a destroyed rock may drop a power-up — the bomb
+    # must run the same spawn hook (deterministic: always drop an E).
+    monkeypatch.setattr(random, "uniform", lambda a, b: 0.0)
+    monkeypatch.setattr(random, "choice", lambda seq: "E")
+    _setup_rocks(game, [(Rock.smallRockType, 50, 50)])
+    _place_bomb_at_ship(game)
+
+    game.checkCollisions()
+
+    assert len(game.powerUpList) == 1
+    assert game.powerUpList[0].letter == "E"
+
+
+def test_bomb_flash_counts_down_in_playing(game):
+    # One rock must stay on screen: with an empty rockList playing()
+    # would trigger levelUp() and respawn rocks every frame.
+    _setup_rocks(game, [(Rock.smallRockType, 60, 60)])
+    game.bombFlashTimer = 30
+
+    for _ in range(10):
+        game.playing()
+
+    assert game.bombFlashTimer == 20
+    assert len(game.rockList) == 1
+
+
+def test_hud_B_bright_only_while_flash_active(game):
+    # The B letter lights up while the flash runs and dims back down,
+    # independent of the ship effect timers.
+    stage = game.stage
+    ship = game.ship
+
+    def top_right_max_brightness():
+        stage.screen.fill((10, 10, 10))
+        game.displayPowerUps()
+        region = stage.screen.subsurface(
+            (stage.width - 100, 0, 100, 40))
+        return max(p.r for x in range(region.get_width())
+                   for y in range(region.get_height())
+                   for p in [region.get_at((x, y))])
+
+    ship.extraBulletsTimer = 0
+    ship.rapidFireTimer = 0
+    ship.shieldTimer = 0
+    game.bombFlashTimer = 0
+    dim = top_right_max_brightness()
+    assert dim < 100
+
+    game.bombFlashTimer = 30
+    bright = top_right_max_brightness()
+    assert bright > 120

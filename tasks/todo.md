@@ -162,16 +162,16 @@ bombFlashTtl` (30). Rozgałęzienie pickupu w `checkCollisions()` na "B".
 Dekrement `bombFlashTimer` w `playing()`.
 
 **Acceptance criteria:**
-- [ ] pickup "B": `rockList` pusty, bez podziału (żadnych nowych skał), power-up usunięty
-- [ ] punkty: +50/+100/+200 za każdą zniszczoną skałę
-- [ ] debris za każdą skałę; saucer nietknięty
-- [ ] bomba przy 0 skałach: bez crashu, flash ustawiony
-- [ ] skała zniszczona bombą może upuścić power-up (hook spawnu)
-- [ ] flash: 30 klatek, dekrementowany w `playing()`, B jasna/ciemna w HUD
+- [x] pickup "B": `rockList` pusty, bez podziału (żadnych nowych skał), power-up usunięty
+- [x] punkty: +50/+100/+200 za każdą zniszczoną skałę
+- [x] debris za każdą skałę; saucer nietknięty
+- [x] bomba przy 0 skałach: bez crashu, flash ustawiony
+- [x] skała zniszczona bombą może upuścić power-up (hook spawnu)
+- [x] flash: 30 klatek, dekrementowany w `playing()`, B jasna/ciemna w HUD
 
 **Verification:**
-- [ ] `python3 -m pytest` zielony
-- [ ] smoke EXIT=124
+- [x] `python3 -m pytest` zielony
+- [x] smoke EXIT=124
 
 **Dependencies:** Q-1
 **Files likely touched:** `src/asteroids.py`, `tests/test_pf.py`

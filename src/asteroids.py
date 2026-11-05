@@ -51,6 +51,8 @@ class Asteroids():
     maxPowerUps = 3
     powerUpChance = 0.1
     powerUpLetters = "ERBS"
+    # Q-2: HUD flash length (frames) after a bomb pickup.
+    bombFlashTtl = 30
 
     def __init__(self):
         self.stage = Stage('Atari Asteroids', (1024, 768))
@@ -169,6 +171,33 @@ class Asteroids():
         self.stage.addSprite(powerUp)
         self.powerUpList.append(powerUp)
 
+    def explodeAllRocks(self):
+        # Q-2: the B power-up wipes every rock off the screen — a final
+        # explosion with no splitting (a large rock leaves no mediums).
+        # Each destroyed rock is scored, sounded and given debris exactly
+        # like a bullet hit, and runs the power-up spawn hook in turn.
+        for rock in list(self.rockList):
+            self.rockList.remove(rock)
+            self.stage.spriteList.remove(rock)
+
+            if rock.rockType == Rock.largeRockType:
+                playSound("explode1")
+                self.score += 50
+            elif rock.rockType == Rock.mediumRockType:
+                playSound("explode2")
+                self.score += 100
+            else:
+                playSound("explode3")
+                self.score += 200
+
+            self.maybeSpawnPowerUp(
+                Vector2d(rock.position.x, rock.position.y))
+
+            self.createDebris(rock)
+
+        # Light the B in the HUD for a few frames.
+        self.bombFlashTimer = self.bombFlashTtl
+
     def playGame(self):
 
         clock = pygame.time.Clock()
@@ -226,6 +255,9 @@ class Asteroids():
         if self.lives == 0:
             self.gameState = 'attract_mode'
         else:
+            # Q-2: the bomb HUD flash counts down one frame per frame.
+            if self.bombFlashTimer > 0:
+                self.bombFlashTimer -= 1
             self.processKeys()
             self.checkCollisions()
             if len(self.rockList) == 0:
@@ -444,7 +476,12 @@ class Asteroids():
         # stage while we are looping.
         for powerUp in list(self.powerUpList):
             if powerUp.collidesWith(self.ship):
-                self.ship.applyPowerUp(powerUp.letter)
+                if powerUp.letter == "B":
+                    # Q-2: the bomb is a global effect — it clears every
+                    # rock off the screen (no ship timers involved).
+                    self.explodeAllRocks()
+                else:
+                    self.ship.applyPowerUp(powerUp.letter)
                 self.powerUpList.remove(powerUp)
                 self.stage.removeSprite(powerUp)
 
